@@ -1,0 +1,24 @@
+sudo: false
+
+language: python
+
+python:
+  - 3.5.2
+
+install:
+  - pip install -r requirements.txt
+
+script:
+  # Tests
+  - python -m unittest discover -v
+  # PyLint
+  - make lint
+
+notifications:
+  email:
+    recipients:
+      - louis.remus@berkeley.edu
+      - skander_jemaa@berkeley.edu
+      - david_lin@berkeley.edu
+    on_success: change
+    on_failure: change
