@@ -1,0 +1,158 @@
+{
+  "segmentationImage": {
+    "methodDescription": null,
+    "segmentationMethod": null
+  },
+  "id": 292597,
+  "createdDate": "2018-02-13T13:34:33.7000000Z",
+  "name": "SMIR.Brain_3more.XX.O.OT.292597.000.mha",
+  "description": "BRATS2015TestingV2",
+  "ontologyCount": 4,
+  "type": {
+    "name": "SegmentationImage",
+    "displayName": "Segmentation Image",
+    "displayNameShort": "SEG",
+    "selfUrl": "https://www.smir.ch/api/object_types/SegmentationImage"
+  },
+  "downloadUrl": "https://www.smir.ch/api/objects/292597/download",
+  "license": {
+    "selfUrl": "https://www.smir.ch/api/licenses/3"
+  },
+  "files": {
+    "totalCount": 1,
+    "pagination": {
+      "rpp": 25,
+      "page": 0
+    },
+    "items": [
+      {
+        "selfUrl": "https://www.smir.ch/api/files/1118191"
+      }
+    ],
+    "nextPageUrl": null
+  },
+  "linkedObjects": {
+    "totalCount": 5,
+    "pagination": {
+      "rpp": 25,
+      "page": 0
+    },
+    "items": [
+      {
+        "selfUrl": "https://www.smir.ch/api/objects/54193"
+      },
+      {
+        "selfUrl": "https://www.smir.ch/api/objects/54194"
+      },
+      {
+        "selfUrl": "https://www.smir.ch/api/objects/54195"
+      },
+      {
+        "selfUrl": "https://www.smir.ch/api/objects/54196"
+      },
+      {
+        "selfUrl": "https://www.smir.ch/api/objects/79157"
+      }
+    ],
+    "nextPageUrl": null
+  },
+  "linkedObjectRelations": {
+    "totalCount": 5,
+    "pagination": {
+      "rpp": 25,
+      "page": 0
+    },
+    "items": [
+      {
+        "selfUrl": "https://www.smir.ch/api/object-links/1420885"
+      },
+      {
+        "selfUrl": "https://www.smir.ch/api/object-links/1420886"
+      },
+      {
+        "selfUrl": "https://www.smir.ch/api/object-links/1420887"
+      },
+      {
+        "selfUrl": "https://www.smir.ch/api/object-links/1420888"
+      },
+      {
+        "selfUrl": "https://www.smir.ch/api/object-links/1420889"
+      }
+    ],
+    "nextPageUrl": null
+  },
+  "ontologyItems": {
+    "totalCount": 4,
+    "pagination": {
+      "rpp": 25,
+      "page": 0
+    },
+    "items": [
+      {
+        "selfUrl": "https://www.smir.ch/api/ontologies/0/50801"
+      },
+      {
+        "selfUrl": "https://www.smir.ch/api/ontologies/0/50801"
+      },
+      {
+        "selfUrl": "https://www.smir.ch/api/ontologies/0/50801"
+      },
+      {
+        "selfUrl": "https://www.smir.ch/api/ontologies/0/50801"
+      }
+    ],
+    "nextPageUrl": null
+  },
+  "ontologyItemRelations": {
+    "totalCount": 4,
+    "pagination": {
+      "rpp": 25,
+      "page": 0
+    },
+    "items": [
+      {
+        "selfUrl": "https://www.smir.ch/api/object-ontologies/0/623535"
+      },
+      {
+        "selfUrl": "https://www.smir.ch/api/object-ontologies/0/623536"
+      },
+      {
+        "selfUrl": "https://www.smir.ch/api/object-ontologies/0/623537"
+      },
+      {
+        "selfUrl": "https://www.smir.ch/api/object-ontologies/0/623538"
+      }
+    ],
+    "nextPageUrl": null
+  },
+  "objectPreviews": [
+    {
+      "selfUrl": "https://www.smir.ch/api/objects/292597/previews/0"
+    },
+    {
+      "selfUrl": "https://www.smir.ch/api/objects/292597/previews/1"
+    },
+    {
+      "selfUrl": "https://www.smir.ch/api/objects/292597/previews/2"
+    },
+    {
+      "selfUrl": "https://www.smir.ch/api/objects/292597/previews/3"
+    },
+    {
+      "selfUrl": "https://www.smir.ch/api/objects/292597/previews/4"
+    },
+    {
+      "selfUrl": "https://www.smir.ch/api/objects/292597/previews/5"
+    }
+  ],
+  "objectGroupRights": [
+    {
+      "selfUrl": "https://www.smir.ch/api/object-group-rights/456388"
+    },
+    {
+      "selfUrl": "https://www.smir.ch/api/object-group-rights/456389"
+    }
+  ],
+  "objectUserRights": null,
+  "selfUrl": "https://www.smir.ch/api/objects/292597"
+}
