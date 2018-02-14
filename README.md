@@ -1,3 +1,3 @@
-[![Build Status](https://travis-ci.com/louis-r/capstone.svg?token=hFDamy5wJf2izBnj73v3&branch=master)](https://travis-ci.com/louis-r/capstone)
+[![Build Status](https://travis-ci.org/louis-r/colorization.svg?branch=master)](https://travis-ci.org/louis-r/colorization)
 
 # Colorization
