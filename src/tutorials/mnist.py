@@ -75,6 +75,10 @@ train_write_path = train_dir + model_name + '/train'
 test_write_path = train_dir + model_name + '/test'
 
 print('Saving at {}'.format(train_dir + model_name))
+
+if not os.path.exists(train_dir):
+    os.makedirs(train_dir)
+
 os.mkdir(train_dir + model_name)
 os.mkdir(train_write_path)
 os.mkdir(test_write_path)
