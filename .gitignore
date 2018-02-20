@@ -1,7 +1,8 @@
 # Personal
 # Folders
-.idea
+.idea/
 *data
+*runs/
 # Files
 *.zip
 
