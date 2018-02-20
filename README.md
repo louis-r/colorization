@@ -2,10 +2,4 @@
 
 # Colorization
 
-Image Colorization Project for STAT 222
-
-Authors:
-
-Skander Jemaa
-David Lin
-Louis Remus
+Image Colorization Project (ongoing work).
