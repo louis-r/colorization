@@ -16,7 +16,7 @@ def build_baseline_model(input_tf):
     Returns:
         Output tensor
     """
-    # First layer
+    # Layer 1
     with tf.variable_scope('Conv_{}'.format(1)):
         x = tf.layers.conv2d(inputs=input_tf,
                              filters=64,
@@ -25,6 +25,7 @@ def build_baseline_model(input_tf):
                              activation=None,
                              kernel_initializer=None,
                              name='conv2d')
+    # Layer 2
     with tf.variable_scope('Conv_{}'.format(2)):
         x = tf.layers.conv2d(inputs=x,
                              filters=128,
@@ -33,6 +34,7 @@ def build_baseline_model(input_tf):
                              activation=None,
                              kernel_initializer=None,
                              name='conv2d')
+    # Layer 3
     with tf.variable_scope('Conv_{}'.format(3)):
         x = tf.layers.conv2d(inputs=x,
                              filters=256,
@@ -42,6 +44,7 @@ def build_baseline_model(input_tf):
                              kernel_initializer=None,
                              name='conv2d')
     # Identical layers
+    # Dilation for layers 5, 6
     for i in range(4, 8):
         with tf.variable_scope('Conv_{}'.format(i)):
             x = tf.layers.conv2d(inputs=x,
@@ -52,6 +55,7 @@ def build_baseline_model(input_tf):
                                  activation=None,
                                  kernel_initializer=None,
                                  name='conv2d')
+    # Last layer
     with tf.variable_scope('Conv_{}'.format(8)):
         x = tf.layers.conv2d(inputs=x,
                              filters=256,
