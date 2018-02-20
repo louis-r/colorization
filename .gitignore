@@ -1,7 +1,7 @@
 # Personal
 # Folders
 .idea
-data
+*data
 # Files
 *.zip
 
