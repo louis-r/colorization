@@ -64,6 +64,10 @@ with tf.name_scope("optimizer"):
     train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss,
                                                                            global_step=global_step)
 
+# Create summaries to visualize weights
+for var in tf.trainable_variables():
+    tf.summary.histogram(var.name, var)
+
 train_summaries_tf = tf.summary.merge_all()
 test_summaries_tf = tf.summary.merge([loss_summary_tf, accuracy_summary_tf])
 
