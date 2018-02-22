@@ -5,7 +5,7 @@
 *runs/
 # Files
 *.zip
-
+*.jpg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
