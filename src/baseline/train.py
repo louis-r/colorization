@@ -8,6 +8,7 @@ import numpy as np
 import tensorflow as tf
 # noinspection PyUnresolvedReferences
 from baseline_model import build_baseline_model
+# from tensorflow.examples.tutorials.mnist import import input_data
 
 tf.app.flags.DEFINE_string('train_dir', 'runs/',
                            """Output dir for tensorflow summaries.""")
@@ -35,11 +36,14 @@ model_name = '{}_{}_{}_{}'.format(prefix,
 
 # Do not specify the size of the training batch
 input_tf = tf.placeholder(tf.float32, [None, 28, 28, 3], name='input_tf')
-tf.summary.image('input_tf', input_tf, 10)
+tf.summary.image('input_tf', input_tf, max_outputs=3)
 
 # TODO incorrect output shape for now
 # Predicted values
 y_pred = build_baseline_model(input_tf=input_tf)
+# Display image
+tf.summary.image('y_pred_a', tf.expand_dims(input=y_pred[:, :, :, 0], axis=3), max_outputs=3)
+tf.summary.image('y_pred_b', tf.expand_dims(input=y_pred[:, :, :, 1], axis=3), max_outputs=3)
 
 # Ground truth
 y_true = tf.placeholder(tf.float32, [None, 4, 4, 2], name='y_true')
@@ -108,9 +112,7 @@ with tf.Session() as sess:
             })
         print('TEST Step = %04d\tloss = %.4f' % (step + 1,
                                                  test_loss_val))
-        # Display image
-        tf.summary.image('y_pred_a', tf.expand_dims(input=y_pred[:, :, :, 0], axis=3), 1)
-        tf.summary.image('y_pred_b', tf.expand_dims(input=y_pred[:, :, :, 1], axis=3), 2)
+
         test_writer.add_summary(s, step)
 
 print("Run the command line:\n"
