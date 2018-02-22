@@ -13,6 +13,9 @@ script:
   - python -m unittest discover -v
   # PyLint
   - make lint
+  # test stuff  
+  - cd src/baseline
+  - sh launch.sh 
 
 notifications:
   email:
