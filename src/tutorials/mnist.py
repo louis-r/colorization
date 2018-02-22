@@ -110,8 +110,8 @@ with tf.Session() as sess:
         test_batch_xs, test_batch_ys = mnist.test.next_batch(batch_size)
         test_loss_val, test_accuracy_val, s = sess.run(
             [loss, accuracy, test_summaries_tf],
-            feed_dict={input_tf: batch_xs,
-                       y_true: batch_ys})
+            feed_dict={input_tf: test_batch_xs,
+                       y_true: test_batch_ys})
 
         print('TEST Step = %06d\tloss = %.4f\taccuracy = %.4f' % (step + 1,
                                                                   test_loss_val.mean(),
