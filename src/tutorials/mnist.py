@@ -101,6 +101,9 @@ with tf.Session() as sess:
             feed_dict={input_tf: batch_xs,
                        y_true: batch_ys})
 
+        print('TRAIN Step = %06d\tloss = %.4f\taccuracy = %.4f' % (step + 1,
+                                                                   train_loss_val.mean(),
+                                                                   train_accuracy_val))
         train_writer.add_summary(s, step)
 
         # Cross validate
@@ -110,12 +113,11 @@ with tf.Session() as sess:
             feed_dict={input_tf: batch_xs,
                        y_true: batch_ys})
 
+        print('TEST Step = %06d\tloss = %.4f\taccuracy = %.4f' % (step + 1,
+                                                                  test_loss_val.mean(),
+                                                                  test_accuracy_val))
         test_writer.add_summary(s, step)
 
-        print('TRAIN Step = %06d\tloss = %.4f\taccuracy = %.4f' % (step + 1,
-                                                                   train_loss_val.mean(),
-                                                                   train_accuracy_val))
-        # print('TEST Step = %02d\tloss = %.4f\taccuracy = %.4f' % (step + 1, test_loss_val.mean(), test_accuracy_val))
 
     print('Final accuracy = %.4f' % sess.run(accuracy,
                                              feed_dict={input_tf: mnist.test.images,
