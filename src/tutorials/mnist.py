@@ -35,10 +35,9 @@ model_name = '{}_{}_{}_{}'.format(prefix,
                                   batch_size)
 # Do not specify the size of the training batch
 input_tf = tf.placeholder(tf.float32, [None, 784], name='input_tf')
-with tf.name_scope('fc'):
-    x = tf.layers.dense(inputs=input_tf,
-                        units=10,
-                        name='fc_layer')
+x = tf.layers.dense(inputs=input_tf,
+                    units=10,
+                    name='fc_layer')
 
 # Predicted values
 y_pred = tf.nn.softmax(x, name='predicted_labels')

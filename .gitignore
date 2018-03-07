@@ -3,9 +3,11 @@
 .idea/
 *data
 *runs/
+
 # Files
 *.zip
 *.jpg
+pylint_*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
