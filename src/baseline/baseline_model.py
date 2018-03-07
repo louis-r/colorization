@@ -2,6 +2,9 @@
 """
 Contributors:
     - Louis Rémus
+
+
+This is the V2 model!
 """
 
 import tensorflow as tf
@@ -23,7 +26,7 @@ def return_padded(x, pad=1):
     return x_padded
 
 
-def build_baseline_model(input_tf):
+def build_baseline_model_v2(input_tf):
     """
     Build the baseline model
     Args:
@@ -44,7 +47,6 @@ def build_baseline_model(input_tf):
             x = tf.layers.conv2d(inputs=x,
                                  filters=2 ** (i + 5),
                                  kernel_size=3,
-                                 strides=1,
                                  activation=tf.nn.relu,
                                  name='conv_{}_1'.format(i))
             # Padding of 1
@@ -65,7 +67,6 @@ def build_baseline_model(input_tf):
             x = tf.layers.conv2d(inputs=x,
                                  filters=256,
                                  kernel_size=3,
-                                 strides=1,
                                  activation=tf.nn.relu,
                                  name='conv_{}_{}'.format(3, j))
         # Padding of 1
@@ -87,9 +88,7 @@ def build_baseline_model(input_tf):
             x = tf.layers.conv2d(inputs=x,
                                  filters=512,
                                  kernel_size=3,
-                                 strides=1,
                                  activation=tf.nn.relu,
-                                 dilation_rate=1,
                                  name='conv_{}_{}'.format(4, j))
         x = tf.layers.batch_normalization(inputs=x,
                                           name='conv_{}_batchnorm'.format(4))
@@ -103,7 +102,6 @@ def build_baseline_model(input_tf):
                 x = tf.layers.conv2d(inputs=x,
                                      filters=512,
                                      kernel_size=3,
-                                     strides=1,
                                      activation=tf.nn.relu,
                                      dilation_rate=2,
                                      name='conv_{}_{}'.format(i, j))
@@ -117,7 +115,6 @@ def build_baseline_model(input_tf):
             x = tf.layers.conv2d(inputs=x,
                                  filters=512,
                                  kernel_size=3,
-                                 strides=1,
                                  activation=tf.nn.relu,
                                  name='conv_{}_{}'.format(7, j))
         x = tf.layers.batch_normalization(inputs=x,
@@ -142,21 +139,19 @@ def build_baseline_model(input_tf):
                                  name='conv_{}_{}'.format(8, j))
     # Block CNN 9
     # TODO Not finished
-    with tf.variable_scope('BCNN_{}'.format(9)):
+    with tf.variable_scope('BCNN_{}_softmax'.format(9)):
         logits = tf.layers.conv2d(inputs=x,
                                   filters=313,
-                                  kernel_size=1,
                                   activation=tf.nn.relu,
                                   name='conv_{}_1'.format(9))
+
         # Notation from the article
         Z = tf.nn.softmax(logits=logits,
                           name='conv_{}_softmax'.format(9))
 
         tmp_INCORRECT = tf.layers.conv2d(inputs=x,
                                          filters=2,
-                                         kernel_size=1,
                                          activation=tf.nn.relu,
-                                         dilation_rate=1,
                                          name='conv_{}_INCORRECT_LAYER'.format(9))
         # Product layer
         # TODO Implement product layer

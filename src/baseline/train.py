@@ -7,7 +7,7 @@ import os
 import numpy as np
 import tensorflow as tf
 # noinspection PyUnresolvedReferences
-from baseline_model import build_baseline_model
+from baseline_model import build_baseline_model_v2
 
 # from tensorflow.examples.tutorials.mnist import import input_data
 
@@ -43,15 +43,17 @@ tf.summary.image('L_tf', L_tf, max_outputs=3)
 
 # TODO incorrect output shape for now
 # Predicted values
-logits, Z_pred, y_pred = build_baseline_model(input_tf=L_tf)
+logits, Z_pred, y_pred = build_baseline_model_v2(input_tf=L_tf)
 
 # Display image
 # tf.summary.image('y_pred_a', tf.expand_dims(input=Z_pred[:, :, :, 0], axis=3), max_outputs=3)
 # tf.summary.image('y_pred_b', tf.expand_dims(input=Z_pred[:, :, :, 1], axis=3), max_outputs=3)
 
 H_out, W_out = y_pred.get_shape().as_list()[1:3]
+
 # Ground truth
 y_true = tf.placeholder(tf.float32, [None, H_out, W_out, 2], name='y_true')
+# Z_true hard-encoding of the ground_truth color
 # Z_true =
 
 print('L_tf shape = {}'.format(L_tf.get_shape().as_list()))
