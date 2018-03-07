@@ -31,11 +31,13 @@ def build_baseline_model(input_tf):
 
     Returns:
         Output tensor
+        1x2x56x56 on caffee https://github.com/richzhang/colorization/blob/master/colorization/demo/colorization_demo_v1.ipynb
+        There is a resize operation to match 244x244 input size
     """
     # TODO Complete, review, test. What is param {lr_mult: 0 decay_mult: 0}?
     # Block CNN 1-2
     x = input_tf
-    for i in range(1, 2):
+    for i in range(1, 3):
         with tf.variable_scope('BCNN_{}'.format(i)):
             # Padding of 1
             x = return_padded(x=x)
@@ -57,22 +59,15 @@ def build_baseline_model(input_tf):
                                               name='conv_{}_batchnorm'.format(i))
     # Block CNN 3
     with tf.variable_scope('BCNN_{}'.format(3)):
-        # Padding of 1
-        x = return_padded(x=x)
-        x = tf.layers.conv2d(inputs=x,
-                             filters=256,
-                             kernel_size=3,
-                             strides=1,
-                             activation=tf.nn.relu,
-                             name='conv_{}_1'.format(3))
-        # Padding of 1
-        x = return_padded(x=x)
-        x = tf.layers.conv2d(inputs=x,
-                             filters=256,
-                             kernel_size=3,
-                             strides=1,
-                             activation=tf.nn.relu,
-                             name='conv_{}_2'.format(3))
+        for j in range(1, 3):
+            # Padding of 1
+            x = return_padded(x=x)
+            x = tf.layers.conv2d(inputs=x,
+                                 filters=256,
+                                 kernel_size=3,
+                                 strides=1,
+                                 activation=tf.nn.relu,
+                                 name='conv_{}_{}'.format(3, j))
         # Padding of 1
         x = return_padded(x=x)
         x = tf.layers.conv2d(inputs=x,
@@ -86,144 +81,83 @@ def build_baseline_model(input_tf):
 
     # Block CNN 4
     with tf.variable_scope('BCNN_{}'.format(4)):
-        # Padding of 1
-        x = return_padded(x=x)
-        x = tf.layers.conv2d(inputs=x,
-                             filters=512,
-                             kernel_size=3,
-                             strides=1,
-                             activation=tf.nn.relu,
-                             dilation_rate=1,
-                             name='conv_{}_1'.format(4))
-        # Padding of 1
-        x = return_padded(x=x)
-        x = tf.layers.conv2d(inputs=x,
-                             filters=512,
-                             kernel_size=3,
-                             strides=1,
-                             activation=tf.nn.relu,
-                             dilation_rate=1,
-                             name='conv_{}_2'.format(4))
-        # Padding of 1
-        x = return_padded(x=x)
-        x = tf.layers.conv2d(inputs=x,
-                             filters=512,
-                             kernel_size=3,
-                             strides=1,
-                             activation=tf.nn.relu,
-                             dilation_rate=1,
-                             name='conv_{}_3'.format(4))
-
+        for j in range(1, 4):
+            # Padding of 1
+            x = return_padded(x=x)
+            x = tf.layers.conv2d(inputs=x,
+                                 filters=512,
+                                 kernel_size=3,
+                                 strides=1,
+                                 activation=tf.nn.relu,
+                                 dilation_rate=1,
+                                 name='conv_{}_{}'.format(4, j))
         x = tf.layers.batch_normalization(inputs=x,
                                           name='conv_{}_batchnorm'.format(4))
 
     # Block CNN 5-6
     for i in range(5, 7):
         with tf.variable_scope('BCNN_{}'.format(i)):
-            # Padding of 2
-            x = return_padded(x=x, pad=2)
-            x = tf.layers.conv2d(inputs=x,
-                                 filters=512,
-                                 kernel_size=3,
-                                 strides=1,
-                                 activation=tf.nn.relu,
-                                 dilation_rate=2,
-                                 name='conv_{}_1'.format(i))
-            # Padding of 2
-            x = return_padded(x=x, pad=2)
-            x = tf.layers.conv2d(inputs=x,
-                                 filters=512,
-                                 kernel_size=3,
-                                 strides=1,
-                                 activation=tf.nn.relu,
-                                 dilation_rate=2,
-                                 name='conv_{}_2'.format(i))
-            # Padding of 2
-            x = return_padded(x=x, pad=2)
-            x = tf.layers.conv2d(inputs=x,
-                                 filters=512,
-                                 kernel_size=3,
-                                 strides=1,
-                                 activation=tf.nn.relu,
-                                 dilation_rate=2,
-                                 name='conv_{}_3'.format(i))
+            for j in range(1, 4):
+                # Padding of 2
+                x = return_padded(x=x, pad=2)
+                x = tf.layers.conv2d(inputs=x,
+                                     filters=512,
+                                     kernel_size=3,
+                                     strides=1,
+                                     activation=tf.nn.relu,
+                                     dilation_rate=2,
+                                     name='conv_{}_{}'.format(i, j))
             x = tf.layers.batch_normalization(inputs=x,
                                               name='conv_{}_batchnorm'.format(i))
     # Block CNN 7
     with tf.variable_scope('BCNN_{}'.format(7)):
-        # Padding of 1
-        x = return_padded(x=x, pad=1)
-        x = tf.layers.conv2d(inputs=x,
-                             filters=512,
-                             kernel_size=3,
-                             strides=1,
-                             activation=tf.nn.relu,
-                             kernel_initializer=None,
-                             name='conv_{}_1'.format(7))
-        # Padding of 1
-        x = return_padded(x=x, pad=1)
-        x = tf.layers.conv2d(inputs=x,
-                             filters=512,
-                             kernel_size=3,
-                             strides=1,
-                             activation=tf.nn.relu,
-                             kernel_initializer=None,
-                             name='conv_{}_2'.format(7))
-        # Padding of 1
-        x = return_padded(x=x, pad=1)
-        x = tf.layers.conv2d(inputs=x,
-                             filters=512,
-                             kernel_size=3,
-                             strides=1,
-                             activation=tf.nn.relu,
-                             kernel_initializer=None,
-                             name='conv_{}_3'.format(7))
+        for j in range(1, 4):
+            # Padding of 1
+            x = return_padded(x=x, pad=1)
+            x = tf.layers.conv2d(inputs=x,
+                                 filters=512,
+                                 kernel_size=3,
+                                 strides=1,
+                                 activation=tf.nn.relu,
+                                 name='conv_{}_{}'.format(7, j))
         x = tf.layers.batch_normalization(inputs=x,
                                           name='conv_{}_batchnorm'.format(7))
     # Block CNN 8
-    # Deconvo layer
     with tf.variable_scope('BCNN_{}'.format(8)):
         # Padding of 1
-        x = return_padded(x=x, pad=1)
+        x = return_padded(x=x)
         x = tf.layers.conv2d(inputs=x,
                              filters=256,
-                             kernel_size=3,
+                             kernel_size=4,
                              strides=2,
                              activation=tf.nn.relu,
-                             dilation_rate=1,
                              name='conv_{}_1'.format(8))
-        # Padding of 1
-        x = return_padded(x=x, pad=1)
-        x = tf.layers.conv2d(inputs=x,
-                             filters=256,
-                             kernel_size=3,
-                             activation=tf.nn.relu,
-                             dilation_rate=1,
-                             name='conv_{}_2'.format(8))
-        # Padding of 1
-        x = return_padded(x=x, pad=1)
-        x = tf.layers.conv2d(inputs=x,
-                             filters=256,
-                             kernel_size=3,
-                             activation=tf.nn.relu,
-                             dilation_rate=1,
-                             name='conv_{}_3'.format(8))
+        for j in range(2, 4):
+            # Padding of 1
+            x = return_padded(x=x)
+            x = tf.layers.conv2d(inputs=x,
+                                 filters=256,
+                                 kernel_size=3,
+                                 activation=tf.nn.relu,
+                                 name='conv_{}_{}'.format(8, j))
     # Block CNN 9
     # TODO Not finished
     with tf.variable_scope('BCNN_{}'.format(9)):
-        x = tf.layers.conv2d(inputs=x,
-                             filters=313,
-                             kernel_size=1,
-                             activation=tf.nn.relu,
-                             dilation_rate=1,
-                             name='conv_{}_1'.format(9))
+        logits = tf.layers.conv2d(inputs=x,
+                                  filters=313,
+                                  kernel_size=1,
+                                  activation=tf.nn.relu,
+                                  name='conv_{}_1'.format(9))
+        # Notation from the article
+        Z = tf.nn.softmax(logits=logits,
+                          name='conv_{}_softmax'.format(9))
 
-        x = tf.layers.conv2d(inputs=x,
-                             filters=2,
-                             kernel_size=1,
-                             activation=tf.nn.relu,
-                             dilation_rate=1,
-                             name='conv_{}_2'.format(9))
+        tmp_INCORRECT = tf.layers.conv2d(inputs=x,
+                                         filters=2,
+                                         kernel_size=1,
+                                         activation=tf.nn.relu,
+                                         dilation_rate=1,
+                                         name='conv_{}_INCORRECT_LAYER'.format(9))
         # Product layer
         # TODO Implement product layer
         # Tmp
@@ -232,4 +166,4 @@ def build_baseline_model(input_tf):
         # softmax = tf.nn.softmax(logits=x,
         #                         name='softmax_{}'.format(9))
 
-    return x
+    return logits, Z, tmp_INCORRECT
