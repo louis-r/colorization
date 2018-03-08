@@ -8,6 +8,7 @@ This is the V2 model!
 """
 
 import tensorflow as tf
+import numpy as np
 
 
 def return_padded(x, pad=1):
@@ -26,7 +27,7 @@ def return_padded(x, pad=1):
     return x_padded
 
 
-def build_baseline_model_v2(input_tf):
+def build_baseline_model_v2(input_tf, pts_in_hull_tf):
     """
     Build the baseline model
     Args:
@@ -140,27 +141,35 @@ def build_baseline_model_v2(input_tf):
     # Block CNN 9
     # TODO Not finished
     with tf.variable_scope('BCNN_{}_softmax'.format(9)):
+        # Notations from the article
+        # conv8_313
         logits = tf.layers.conv2d(inputs=x,
                                   filters=313,
                                   kernel_size=1,
                                   activation=tf.nn.relu,
                                   name='conv_{}_1'.format(9))
 
-        # Notation from the article
+        # class8_313_rh
         z = tf.nn.softmax(logits=logits,
                           name='conv_{}_softmax'.format(9))
+        # class8_ab
+        # class8_ab = tf.layers.conv2d(inputs=x,
+        #                              filters=2,
+        #                              kernel_size=1,
+        #                              name='conv_{}_INCORRECT_LAYER'.format(9))
+        # Annealed mean
+        class8_ab = tf.nn.conv2d(input=z,
+                                 filter=tf.reshape(pts_in_hull_tf, [1, 1, 313, 2]),
+                                 strides=[1, 1, 1, 1],
+                                 padding='SAME',
+                                 name='class8_ab')
 
-        tmp_incorrect = tf.layers.conv2d(inputs=x,
-                                         filters=2,
-                                         kernel_size=1,
-                                         activation=tf.nn.relu,
-                                         name='conv_{}_INCORRECT_LAYER'.format(9))
         # Product layer
-        # TODO Implement product layer
+        # TODO Implement scale layer
         # Tmp
         # x = tf.reshape(x, [-1, 28 * 28 * 2])
         # Softmax layer
         # softmax = tf.nn.softmax(logits=x,
         #                         name='softmax_{}'.format(9))
 
-    return logits, z, tmp_incorrect
+    return logits, z, class8_ab
