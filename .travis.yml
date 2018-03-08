@@ -16,5 +16,12 @@ script:
 
 notifications:
   email:
+    recipients:
+    - louis.remus@berkeley.edu
+    - skander_jemaa@berkeley.edu
+    - david_lin@berkeley.edu
+    - auriane.blarre@berkeley.edu
+    - pierrehabte_nouv@berkeley.edu
+    - titouan.jehl@berkeley.edu
     on_success: change
     on_failure: change
