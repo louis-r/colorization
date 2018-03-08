@@ -142,6 +142,7 @@ def build_baseline_model_v2(input_tf):
     with tf.variable_scope('BCNN_{}_softmax'.format(9)):
         logits = tf.layers.conv2d(inputs=x,
                                   filters=313,
+                                  kernel_size=1,
                                   activation=tf.nn.relu,
                                   name='conv_{}_1'.format(9))
 
