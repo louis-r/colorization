@@ -34,7 +34,7 @@ def build_baseline_model_v2(input_tf):
 
     Returns:
         Output tensor
-        1x2x56x56 on caffee https://github.com/richzhang/colorization/blob/master/colorization/demo/colorization_demo_v1.ipynb
+        1x2x56x56 on caffee
         There is a resize operation to match 244x244 input size
     """
     # TODO Complete, review, test. What is param {lr_mult: 0 decay_mult: 0}?
@@ -146,11 +146,12 @@ def build_baseline_model_v2(input_tf):
                                   name='conv_{}_1'.format(9))
 
         # Notation from the article
-        Z = tf.nn.softmax(logits=logits,
+        z = tf.nn.softmax(logits=logits,
                           name='conv_{}_softmax'.format(9))
 
-        tmp_INCORRECT = tf.layers.conv2d(inputs=x,
+        tmp_incorrect = tf.layers.conv2d(inputs=x,
                                          filters=2,
+                                         kernel_size=1,
                                          activation=tf.nn.relu,
                                          name='conv_{}_INCORRECT_LAYER'.format(9))
         # Product layer
@@ -161,4 +162,4 @@ def build_baseline_model_v2(input_tf):
         # softmax = tf.nn.softmax(logits=x,
         #                         name='softmax_{}'.format(9))
 
-    return logits, Z, tmp_INCORRECT
+    return logits, z, tmp_incorrect
