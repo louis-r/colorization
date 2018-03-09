@@ -158,8 +158,8 @@ def build_baseline_model_v2(input_tf, pts_in_hull_tf):
         #                              name='conv_{}_INCORRECT_LAYER'.format(9))
         # Annealed mean
         class8_ab = tf.nn.conv2d(input=z,
-                                 filter=tf.reshape(
-                                     pts_in_hull_tf, [1, 1, 313, 2]),
+                                 filter=tf.reshape(pts_in_hull_tf,
+                                                   [1, 1, 313, 2]),
                                  strides=[1, 1, 1, 1],
                                  padding='SAME',
                                  name='class8_ab')
