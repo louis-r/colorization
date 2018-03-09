@@ -26,10 +26,12 @@ def return_padded(x, pad=1):
     return x_padded
 
 
-def build_baseline_model_v2(input_tf, pts_in_hull_tf):
+def build_baseline_model_v2(input_tf, pts_in_hull_tf, batch_size):
     """
     Build the baseline model
     Args:
+        batch_size ():
+        pts_in_hull_tf ():
         input_tf (Tensor):
 
     Returns:
@@ -123,12 +125,20 @@ def build_baseline_model_v2(input_tf, pts_in_hull_tf):
     with tf.variable_scope('BCNN_{}'.format(8)):
         # Padding of 1
         x = return_padded(x=x)
-        x = tf.layers.conv2d_transpose(inputs=x,
-                                       filters=256,
-                                       kernel_size=4,
-                                       strides=2,
-                                       activation=tf.nn.relu,
-                                       name='conv_{}_1_deconvolution'.format(8))
+        # x = tf.layers.conv2d_transpose(inputs=x,
+        #                                filters=256,
+        #                                kernel_size=4,
+        #                                strides=2,
+        #                                activation=tf.nn.relu,
+        #                                name='conv_{}_1_deconvolution'.format(8))
+
+        # 34, 34, 512 -> 64, 64, 256
+        filter_deconv = tf.Variable(tf.random_normal([34, 34, 256, 512]))
+        x = tf.nn.conv2d_transpose(value=x,
+                                   filter=filter_deconv,
+                                   output_shape=tf.constant([batch_size, 64, 64, 256]),
+                                   strides=[1, 2, 2, 1],
+                                   padding='VALID')
         for j in range(2, 4):
             # Padding of 1
             x = return_padded(x=x)
@@ -138,7 +148,6 @@ def build_baseline_model_v2(input_tf, pts_in_hull_tf):
                                  activation=tf.nn.relu,
                                  name='conv_{}_{}'.format(8, j))
     # Block CNN 9
-    # TODO Not finished
     with tf.variable_scope('BCNN_{}_softmax'.format(9)):
         # Notations from the article
         # conv8_313
