@@ -38,6 +38,7 @@ H_in, W_in = 256, 256
 Q = 313
 # Do not specify the size of the training batch
 L_tf = tf.placeholder(tf.float32, [None, H_in, W_in, 1], name='L_tf')
+# 56 shape from caffe_v1.txt
 T_recip_tf = tf.placeholder(tf.float32, [None, 56, 56, Q], name='T_recip_tf')
 # Cluster centers
 pts_in_hull_tf = tf.placeholder(tf.float32, [Q, 2], name='pts_in_hull_tf')
@@ -46,13 +47,16 @@ tf.summary.image('L_tf', L_tf, max_outputs=3)
 
 # TODO incorrect output shape for now
 # Predicted values
-logits, Z_pred, y_pred = build_baseline_model_v2(input_tf=L_tf, pts_in_hull_tf=pts_in_hull_tf)
+logits, Z_pred, y_pred = build_baseline_model_v2(input_tf=L_tf,
+                                                 pts_in_hull_tf=pts_in_hull_tf,
+                                                 batch_size=batch_size)
 
 # Display image
 # tf.summary.image('y_pred_a', tf.expand_dims(input=Z_pred[:, :, :, 0], axis=3), max_outputs=3)
 # tf.summary.image('y_pred_b', tf.expand_dims(input=Z_pred[:, :, :, 1], axis=3), max_outputs=3)
 
 H_out, W_out = y_pred.get_shape().as_list()[1:3]
+assert H_out == W_out == 64, 'Incorrect output shapes'
 
 # Ground truth
 y_true = tf.placeholder(tf.float32, [None, H_out, W_out, 2], name='y_true')
