@@ -111,7 +111,7 @@ def build_baseline_model_v2(input_tf, pts_in_hull_tf):
     with tf.variable_scope('BCNN_{}'.format(7)):
         for j in range(1, 4):
             # Padding of 1
-            x = return_padded(x=x, pad=1)
+            x = return_padded(x=x)
             x = tf.layers.conv2d(inputs=x,
                                  filters=512,
                                  kernel_size=3,
