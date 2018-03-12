@@ -14,8 +14,8 @@ def return_padded(x, pad=1):
     """
     Pad input. See tensorflow doc.
     Args:
-        x ():
-        pad ():
+        x (tf.tensor): tensor N, H, W, C to be padded
+        pad (int): padding constant
 
     Returns:
 
