@@ -8,12 +8,9 @@ import os
 import numpy as np
 import sklearn.neighbors as nn
 from skimage import io, color
+from matplotlib.pyplot import imshow
 
 
-# BGR2LabLayer
-# NNEncLayer
-# NonGrayMaskLayer
-# PriorBoostLayer
 
 def check_value(inds, val):
     """
@@ -102,6 +99,7 @@ class NNEncode:
 
         self.alreadyUsed = False
 
+
     def encode_points_mtx_nd(self, pts_nd, axis=1, sameBlock=True):
         """
         Missing docstring
@@ -147,6 +145,16 @@ class NNEncode:
         if returnEncode:
             return pts_dec_nd, pts_1hot_nd
         return pts_dec_nd
+
+    def decode_with_luminosity(self, Qimage, L):
+        # Converts image in Q space to image in ab space with default luminosity
+        res = np.array([L, self.cc[Qimage, 0], self.cc[Qimage, 1]]).transpose(1, 2, 0)
+        return color.lab2rgb(res)
+
+    def decode_without_luminosity(self, Qimage, L=50):
+        # Converts image in Q space to image in ab space with default luminosity
+        res = np.array([L * np.ones(Qimage.shape), self.cc[Qimage, 0], self.cc[Qimage, 1]]).transpose(1, 2, 0)
+        return color.lab2rgb(res)
 
 
 class PriorFactor():
@@ -199,6 +207,7 @@ class PriorFactor():
             np.median(self.prior_factor),
             np.sum(self.prior_factor * self.prior_probs)))
 
+
     def forward(self, data_ab_quant, axis=1):  # pylint: disable=inconsistent-return-statements
         """
         Missing docstring
@@ -219,6 +228,13 @@ class PriorFactor():
             return corr_factor[:, :, na(), :]
         elif axis == 3:
             return corr_factor[:, :, :, na()]
+
+    def decode(self, prior_Qimage):
+        map = dict()
+        for ind in range(len(self.prior_factor)):
+            map[ind] = pc.prior_factor[ind]
+        inv_map = {v: k for k, v in map.items()}
+        return np.vectorize(inv_map.get)(prior_Qimage)
 
 
 def convert_image_Qspace(filepath, NN, sigma, gamma, alpha, ENC_DIR=''):
@@ -250,20 +266,14 @@ def convert_image_Qspace(filepath, NN, sigma, gamma, alpha, ENC_DIR=''):
     Q = nnenc.K
 
     encode_lab = nnenc.encode_points_mtx_nd(lab_ab, axis=1)
-
     encode_lab.reshape(N, Q, X, Y)
 
-    pc = PriorFactor(alpha, gamma=gamma, priorFile=os.path.join(ENC_DIR, 'prior_probs.npy'))
-
-    N = encode_lab.shape[0]
-    Q = encode_lab.shape[1]
-    X = encode_lab.shape[2]
-    Y = encode_lab.shape[3]
-
+    # priorFile np array with class priors computed on the whole ImageNet dataset
+    pc = PriorFactor(alpha, gamma=gamma, verbose=False, priorFile=os.path.join(ENC_DIR, 'prior_probs.npy'))
     res = pc.forward(encode_lab, axis=1)
     res.reshape(N, 1, X, Y)
-    return res
 
+    return res
 
 if __name__ == '__main__':
     NN_ = 10.
@@ -273,4 +283,23 @@ if __name__ == '__main__':
 
     filepath_ = 'kitten.jpg'
 
-    convert_image_Qspace(filepath_, NN_, sigma_, gamma_, alpha_, ENC_DIR='')
+    prior_Qimage = convert_image_Qspace(filepath_, NN_, sigma_, gamma_, alpha_, ENC_DIR='')
+    imshow(prior_Qimage[0, 0])
+
+    # Now retrieve image from Q space to ab space
+
+    pc = PriorFactor(alpha_, gamma=gamma_, verbose=False, priorFile=os.path.join('', 'prior_probs.npy'))
+    Qimage = pc.decode(prior_Qimage[0, 0])
+
+    nnenc = NNEncode(NN_, sigma_, km_filepath=os.path.join('', 'pts_in_hull.npy'))
+
+    res = nnenc.decode_without_luminosity(Qimage, L=50)
+    imshow(res) # Wrong luminosity, wrong colors but shapes ok
+
+    # Cheat: retrieve luminosity from original image
+    rgb = io.imread(os.path.join('', filepath_))
+    lab = np.array([color.rgb2lab(rgb)]).transpose((0, 3, 1, 2))  # size NxXxYx3
+    L = lab[:, 0, :, :]
+
+    res = nnenc.decode_with_luminosity(Qimage, L[0])
+    imshow(res) # Works! but the luminosity is lost
