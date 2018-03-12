@@ -3,13 +3,12 @@
 Contributors:
     - Louis Rémus
 """
-# pylint: disable=C0103,W1401
+# pylint: disable=C0103, W1401, redefined-outer-name
 import os
 import numpy as np
 import sklearn.neighbors as nn
 from skimage import io, color
 from matplotlib.pyplot import imshow
-
 
 
 def check_value(inds, val):
@@ -98,7 +97,6 @@ class NNEncode:
         self.nbrs = nn.NearestNeighbors(n_neighbors=self.NN, algorithm='ball_tree').fit(self.cc)
 
         self.alreadyUsed = False
-
 
     def encode_points_mtx_nd(self, pts_nd, axis=1, sameBlock=True):
         """
@@ -207,7 +205,6 @@ class PriorFactor():
             np.median(self.prior_factor),
             np.sum(self.prior_factor * self.prior_probs)))
 
-
     def forward(self, data_ab_quant, axis=1):  # pylint: disable=inconsistent-return-statements
         """
         Missing docstring
@@ -230,10 +227,10 @@ class PriorFactor():
             return corr_factor[:, :, :, na()]
 
     def decode(self, prior_Qimage):
-        map = dict()
+        map_dict = dict()
         for ind in range(len(self.prior_factor)):
-            map[ind] = pc.prior_factor[ind]
-        inv_map = {v: k for k, v in map.items()}
+            map_dict[ind] = pc.prior_factor[ind]
+        inv_map = {v: k for k, v in map_dict.items()}
         return np.vectorize(inv_map.get)(prior_Qimage)
 
 
@@ -275,6 +272,7 @@ def convert_image_Qspace(filepath, NN, sigma, gamma, alpha, ENC_DIR=''):
 
     return res
 
+
 if __name__ == '__main__':
     NN_ = 10.
     sigma_ = 5.
@@ -294,7 +292,7 @@ if __name__ == '__main__':
     nnenc = NNEncode(NN_, sigma_, km_filepath=os.path.join('', 'pts_in_hull.npy'))
 
     res = nnenc.decode_without_luminosity(Qimage, L=50)
-    imshow(res) # Wrong luminosity, wrong colors but shapes ok
+    imshow(res)  # Wrong luminosity, wrong colors but shapes ok
 
     # Cheat: retrieve luminosity from original image
     rgb = io.imread(os.path.join('', filepath_))
@@ -302,4 +300,4 @@ if __name__ == '__main__':
     L = lab[:, 0, :, :]
 
     res = nnenc.decode_with_luminosity(Qimage, L[0])
-    imshow(res) # Works! but the luminosity is lost
+    imshow(res)  # Works! but the luminosity is lost
