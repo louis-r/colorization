@@ -1,1 +1,11 @@
 pylint==1.8.2
+numpy
+Pillow
+matplotlib
+scikit-image
+scipy
+tensorflow
+
+pytest
+pytest-cov
+pytest-runner
