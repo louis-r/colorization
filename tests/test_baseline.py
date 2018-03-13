@@ -4,8 +4,8 @@ Testing module for the baseline
 # pylint: disable=invalid-name, redefined-outer-name
 import os
 import sys
-import pytest
 import tensorflow as tf
+import pytest
 
 sys.path.append(os.path.realpath(os.path.dirname(__file__) + "/../src/baseline"))
 from baseline_model import return_padded  # pylint: disable=wrong-import-position
