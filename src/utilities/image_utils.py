@@ -7,8 +7,8 @@ Contributors:
 import os
 import numpy as np
 from skimage import io, color
-import sklearn.neighbors as nn
 from matplotlib.pyplot import imshow
+import sklearn.neighbors as nn
 
 
 def check_value(inds, val):
