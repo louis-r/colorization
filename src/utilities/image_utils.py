@@ -6,9 +6,9 @@ Contributors:
 # pylint: disable=C0103, W1401, redefined-outer-name
 import os
 import numpy as np
-import sklearn.neighbors as nn
 from skimage import io, color
 from matplotlib.pyplot import imshow
+import sklearn.neighbors as nn
 
 
 def check_value(inds, val):
