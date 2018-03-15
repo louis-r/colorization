@@ -234,7 +234,7 @@ class PriorFactor():
         return np.vectorize(inv_map.get)(prior_Qimage)
 
 
-def convert_image_Qspace(lab_ab, NN, sigma, gamma, alpha, ENC_DIR='', is_lab=True):
+def convert_image_Qspace(lab_ab, NN, sigma, gamma, alpha, ENC_DIR=''):
     """
     Missing docstring
     Args:
@@ -287,11 +287,11 @@ if __name__ == '__main__':
     filepath_ = 'kitten.jpg'
 
     prior_Qimage = convert_image_Qspace(filepath_, NN_, sigma_, gamma_, alpha_, ENC_DIR='')
-    imshow(prior_Qimage[0, 0])
+    imshow(prior_Qimage[0, 0])  # pylint: disable=invalid-sequence-index
 
     # Now retrieve image from Q space to ab space
     pc = PriorFactor(alpha_, gamma=gamma_, verbose=False, priorFile=os.path.join('', 'prior_probs.npy'))
-    Qimage = pc.decode(prior_Qimage[0, 0])
+    Qimage = pc.decode(prior_Qimage[0, 0]) # pylint: disable=invalid-sequence-index
 
     nnenc = NNEncode(NN_, sigma_, km_filepath=os.path.join('', 'pts_in_hull.npy'))
 

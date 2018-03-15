@@ -26,11 +26,10 @@ def return_padded(x, pad=1):
     return x_padded
 
 
-def build_baseline_model_v2(input_tf, pts_in_hull_tf, batch_size):
+def build_baseline_model_v2(input_tf, pts_in_hull_tf):
     """
     Build the baseline model
     Args:
-        batch_size ():
         pts_in_hull_tf ():
         input_tf (Tensor):
 

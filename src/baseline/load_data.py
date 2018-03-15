@@ -3,8 +3,6 @@
 Load data helpers
 """
 # pylint: disable=invalid-name, redefined-outer-name
-import os
-import sys
 import numpy as np
 # noinspection PyUnresolvedReferences
 from image_utils import convert_image_Qspace
@@ -48,8 +46,8 @@ def load_data(a_file, b_file, L_file, **kwargs):
     lab_ab = lab_ab.transpose((0, 3, 1, 2))  # N, 3, H, W
     X_l = X_l.reshape(-1, 256, 256, 1)
 
-    prior_Qimage, Q_image = convert_image_Qspace(lab_ab=lab_ab, NN=NN, sigma=sigma, gamma=gamma, alpha=alpha,
-                                                 ENC_DIR='')
+    _, Q_image = convert_image_Qspace(lab_ab=lab_ab, NN=NN, sigma=sigma, gamma=gamma, alpha=alpha,
+                                      ENC_DIR='')
 
     return X_l, Q_image
 

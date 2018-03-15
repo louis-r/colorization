@@ -10,8 +10,7 @@ import tensorflow as tf
 # noinspection PyUnresolvedReferences
 from baseline_model import build_baseline_model_v2
 # noinspection PyUnresolvedReferences
-from load_data import load_data, dict_batch
-import scipy.ndimage.interpolation as sni
+from load_data import load_data
 
 tf.app.flags.DEFINE_string('train_dir', 'runs/',
                            """Output dir for tensorflow summaries.""")
@@ -64,7 +63,8 @@ pts_in_hull_tf = tf.placeholder(tf.float32, [Q, 2], name='pts_in_hull_tf')
 # Predicted values
 logits_tf, Z_pred_tf, y_pred_tf = build_baseline_model_v2(input_tf=L_tf,
                                                           pts_in_hull_tf=pts_in_hull_tf,
-                                                          batch_size=batch_size)
+                                                          # batch_size=batch_size
+                                                          )
 
 # Display image
 # tf.summary.image('y_pred_a', tf.expand_dims(input=Z_pred_tf[:, :, :, 0], axis=3), max_outputs=3)
@@ -144,7 +144,7 @@ with tf.Session() as sess:
 
         train_writer.add_summary(s, step)
 
-        print('TRAIN Step = %04d\tloss = %.4f' % (step + 1,
+        print('TRAIN Step = %04d\tloss = %.6f' % (step + 1,
                                                   train_loss_val))
         # # Cross validate
         # test_batch_x = np.random.rand(batch_size, H_in, W_in, 1)
