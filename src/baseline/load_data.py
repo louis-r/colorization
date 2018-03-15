@@ -3,13 +3,14 @@
 Load data helpers
 """
 # pylint: disable=invalid-name, redefined-outer-name
+import os
+import sys
 import numpy as np
+# noinspection PyUnresolvedReferences
+from image_utils import convert_image_Qspace
 
 
-# input: path to the different files
-# output: X_train, y_train, X_l
-
-def load_data(a_file, b_file, L_file, gray_file):
+def load_data(a_file, b_file, L_file, **kwargs):
     """
     Docstring @PH
     Args:
@@ -21,19 +22,36 @@ def load_data(a_file, b_file, L_file, gray_file):
     Returns:
 
     """
+
+    NN = kwargs.pop('NN_ ', 10.)
+    sigma = kwargs.pop('sigma_ ', 5.)
+    gamma = kwargs.pop('gamma_ ', .5)
+    alpha = kwargs.pop('alpha_ ', 1.)
+
     X_a = np.load(a_file)
     X_b = np.load(b_file)
     X_l = np.load(L_file)
-    X_gray = np.load(gray_file)
+    # X_gray = np.load(gray_file)
 
-    X_train = np.zeros((X_gray.shape[0], X_gray.shape[1], 1))
-    X_train[:, :, 0] = X_gray
+    n_images = 1
+    print('Subsetting to the first {} images'.format(n_images))
+    X_a = X_a[:n_images, :]
+    X_b = X_b[:n_images, :]
+    X_l = X_l[:n_images, :]
 
-    y_train = np.zeros((X_gray.shape[0], X_gray.shape[1], 2))
-    y_train[:, :, 0] = X_a
-    y_train[:, :, 1] = X_b
+    lab_ab = np.zeros((X_l.shape[0], X_l.shape[1], 2))
+    lab_ab[:, :, 0] = X_a
+    lab_ab[:, :, 1] = X_b
 
-    return X_train, y_train, X_l
+    # Reshape
+    lab_ab = lab_ab.reshape(-1, 256, 256, 2)
+    lab_ab = lab_ab.transpose((0, 3, 1, 2))  # N, 3, H, W
+    X_l = X_l.reshape(-1, 256, 256, 1)
+
+    prior_Qimage, Q_image = convert_image_Qspace(lab_ab=lab_ab, NN=NN, sigma=sigma, gamma=gamma, alpha=alpha,
+                                                 ENC_DIR='')
+
+    return X_l, Q_image
 
 
 # creates a dictionary of batches of data

@@ -131,14 +131,25 @@ def build_baseline_model_v2(input_tf, pts_in_hull_tf, batch_size):
         #                                strides=2,
         #                                activation=tf.nn.relu,
         #                                name='conv_{}_1_deconvolution'.format(8))
+        x = tf.layers.conv2d_transpose(inputs=x,
+                                       filters=256,
+                                       kernel_size=25,
+                                       strides=7,
+                                       activation=tf.nn.relu)
 
+        # 34, 34, 512 -> 56, 56, 256
+        # filter_deconv = tf.Variable(tf.random_normal([34, 34, 256, 512]))
+        # x = tf.nn.conv2d_transpose(value=x,
+        #                            filter=filter_deconv,
+        #                            output_shape=tf.constant([batch_size, 56, 56, 256]),
+        #                            strides=[1, 2, 2, 1],
+        #                            padding='VALID')
         # 34, 34, 512 -> 64, 64, 256
-        filter_deconv = tf.Variable(tf.random_normal([34, 34, 256, 512]))
-        x = tf.nn.conv2d_transpose(value=x,
-                                   filter=filter_deconv,
-                                   output_shape=tf.constant([batch_size, 64, 64, 256]),
-                                   strides=[1, 2, 2, 1],
-                                   padding='VALID')
+        # x = tf.nn.conv2d_transpose(value=x,
+        #                            filter=filter_deconv,
+        #                            output_shape=tf.constant([batch_size, 64, 64, 256]),
+        #                            strides=[1, 2, 2, 1],
+        #                            padding='VALID')
         for j in range(2, 4):
             # Padding of 1
             x = return_padded(x=x)
@@ -178,7 +189,7 @@ def build_baseline_model_v2(input_tf, pts_in_hull_tf, batch_size):
         # Tmp
         # x = tf.reshape(x, [-1, 28 * 28 * 2])
         # Softmax layer
-        # softmax = tf.nn.softmax(logits=x,
+        # softmax = tf.nn.softmax(logits_tf=x,
         #                         name='softmax_{}'.format(9))
 
     return logits, z, class8_ab
