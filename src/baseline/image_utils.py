@@ -234,7 +234,7 @@ class PriorFactor():
         return np.vectorize(inv_map.get)(prior_Qimage)
 
 
-def convert_image_Qspace(filepath, NN, sigma, gamma, alpha, ENC_DIR=''):
+def convert_image_Qspace(lab_ab, NN, sigma, gamma, alpha, ENC_DIR='', is_lab=True):
     """
     Missing docstring
     Args:
@@ -248,29 +248,34 @@ def convert_image_Qspace(filepath, NN, sigma, gamma, alpha, ENC_DIR=''):
     Returns:
 
     """
-    rgb = io.imread(os.path.join(ENC_DIR, filepath))
-    lab = np.array([color.rgb2lab(rgb)]).transpose((0, 3, 1, 2))  # size NxXxYx3
+    # rgb = io.imread(os.path.join(ENC_DIR, filepath))
+    # lab = np.array([color.rgb2lab(rgb)]).transpose((0, 3, 1, 2))  # size NxHxWx3
+    # lab shape N, 3, H, W
 
     # Slice the image in L and ab slices
-    lab_ab = lab[:, 1:, :, :]
+    # lab_ab = lab[:, 1:, :, :]
 
     # km_filepath is a np array with the coordinates of the 313 classes
     nnenc = NNEncode(NN, sigma, km_filepath=os.path.join(ENC_DIR, 'pts_in_hull.npy'))
 
-    N = lab.shape[0]
-    X = lab.shape[2]
-    Y = lab.shape[3]
+    N = lab_ab.shape[0]
+    H = lab_ab.shape[2]
+    W = lab_ab.shape[3]
     Q = nnenc.K
 
     encode_lab = nnenc.encode_points_mtx_nd(lab_ab, axis=1)
-    encode_lab.reshape(N, Q, X, Y)
+    encode_lab.reshape(N, Q, H, W)
 
     # priorFile np array with class priors computed on the whole ImageNet dataset
-    pc = PriorFactor(alpha, gamma=gamma, verbose=False, priorFile=os.path.join(ENC_DIR, 'prior_probs.npy'))
-    res = pc.forward(encode_lab, axis=1)
-    res.reshape(N, 1, X, Y)
+    pc = PriorFactor(alpha,
+                     gamma=gamma,
+                     verbose=False,
+                     priorFile=os.path.join(ENC_DIR, 'prior_probs.npy'))
 
-    return res
+    res = pc.forward(encode_lab, axis=1)
+    res.reshape(N, 1, H, W)
+
+    return res, encode_lab
 
 
 if __name__ == '__main__':
@@ -285,7 +290,6 @@ if __name__ == '__main__':
     imshow(prior_Qimage[0, 0])
 
     # Now retrieve image from Q space to ab space
-
     pc = PriorFactor(alpha_, gamma=gamma_, verbose=False, priorFile=os.path.join('', 'prior_probs.npy'))
     Qimage = pc.decode(prior_Qimage[0, 0])
 
