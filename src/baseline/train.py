@@ -11,6 +11,7 @@ import tensorflow as tf
 from baseline_model import build_baseline_model_v2
 # noinspection PyUnresolvedReferences
 from load_data import load_data
+from image_utils import lab_to_rgb
 
 tf.app.flags.DEFINE_string('train_dir', 'runs/',
                            """Output dir for tensorflow summaries.""")
@@ -18,9 +19,9 @@ tf.app.flags.DEFINE_string('prefix', None,
                            """Model name prefix.""")
 tf.app.flags.DEFINE_float('learning_rate', 1e-2,
                           """Learning rate.""")
-tf.app.flags.DEFINE_integer('n_steps', 10,
+tf.app.flags.DEFINE_integer('n_steps', 1000,
                             """Number of training epochs.""")
-tf.app.flags.DEFINE_integer('batch_size', 1,
+tf.app.flags.DEFINE_integer('batch_size', 100,
                             """Batch size.""")
 
 FLAGS = tf.app.flags.FLAGS
@@ -36,11 +37,13 @@ H_out, W_out = 256, 256
 Q = 313
 
 # Load the data
-X_l, Qimage = load_data(a_file='../../data/X_lab_a0.npy',
-                        b_file='../../data/X_lab_b0.npy',
-                        L_file='../../data/X_lab_L0.npy')
+X_l, Q_images, y_true = load_data(a_file='../../data/X_lab_a0.npy',
+                                  b_file='../../data/X_lab_b0.npy',
+                                  L_file='../../data/X_lab_L0.npy',
+                                  n_images=batch_size)
 L = X_l.reshape(-1, H_in, W_in, 1)
-z_true = Qimage.reshape(-1, H_in, W_in, Q)
+y_true = y_true.reshape(-1, H_in, W_in, 2)
+z_true = Q_images.reshape(-1, H_in, W_in, Q)
 
 model_name = 'lr={}_n_steps={}_batch_size={}'.format(learning_rate,
                                                      n_steps,
@@ -50,12 +53,10 @@ if prefix is not None:
 
 # Do not specify the size of the training batch
 L_tf = tf.placeholder(tf.float32, [None, H_in, W_in, 1], name='L_tf')
-tf.summary.image('L_tf', L_tf, max_outputs=3)
 # 56 shape from caffe_v1.txt
 T_recip_tf = tf.placeholder(tf.float32, [None, 56, 56, Q], name='T_recip_tf')
 # Cluster centers
 pts_in_hull_tf = tf.placeholder(tf.float32, [Q, 2], name='pts_in_hull_tf')
-
 
 # TODO incorrect output shape for now
 # The output shape of y_pred_tf should be (56, 56)
@@ -65,13 +66,6 @@ logits_tf, Z_pred_tf, y_pred_tf = build_baseline_model_v2(input_tf=L_tf,
                                                           pts_in_hull_tf=pts_in_hull_tf,
                                                           # batch_size=batch_size
                                                           )
-
-# Display image
-# tf.summary.image('y_pred_a', tf.expand_dims(input=Z_pred_tf[:, :, :, 0], axis=3), max_outputs=3)
-# tf.summary.image('y_pred_b', tf.expand_dims(input=Z_pred_tf[:, :, :, 1], axis=3), max_outputs=3)
-complete_image_tf = tf.concat([y_pred_tf, L_tf], axis=3)
-tf.summary.image('complete_image_tf', complete_image_tf[:, :, :, :], max_outputs=1)
-
 # H_out, W_out = y_pred_tf.get_shape().as_list()[1:3]
 # assert H_out == W_out == 64, 'Incorrect output shapes'
 
@@ -103,6 +97,15 @@ with tf.name_scope("optimizer"):
     train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss,
                                                                            global_step=global_step)
 
+# Display images
+max_outputs = min(batch_size, 3)
+max_outputs = 1
+tf.summary.image('L_tf', L_tf, max_outputs=max_outputs)
+recolorized_image_tf = tf.concat([y_pred_tf, L_tf], axis=3)
+tf.summary.image('recolorized_image_tf', lab_to_rgb(recolorized_image_tf), max_outputs=max_outputs)
+original_image = tf.concat([y_true_tf, L_tf], axis=3)
+tf.summary.image('colorized_image_tf', lab_to_rgb(original_image), max_outputs=max_outputs)
+
 # Create summaries to visualize weights
 for var in tf.trainable_variables():
     tf.summary.histogram(var.name, var)
@@ -128,18 +131,20 @@ with tf.Session() as sess:
 
     # Add TensorBoard graph
     train_writer.add_graph(sess.graph)
-
+    print('Starting training for n_steps = {}'.format(n_steps))
     for step in range(n_steps):
         # Train
         batch_x = L
         batch_z = z_true
+        batch_y = y_true
 
         _, train_loss_val, s, y_pred_val = sess.run(
             [train_step, loss, train_summaries_tf, y_pred_tf],
             feed_dict={
                 L_tf: batch_x,
                 z_true_tf: batch_z,
-                pts_in_hull_tf: np.load('pts_in_hull.npy').astype(float)
+                y_true_tf: batch_y,
+                pts_in_hull_tf: np.load('pts_in_hull.npy').astype(float),
             })
 
         train_writer.add_summary(s, step)

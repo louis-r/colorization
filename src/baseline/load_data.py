@@ -22,16 +22,15 @@ def load_data(a_file, b_file, L_file, **kwargs):
     """
 
     NN = kwargs.pop('NN_ ', 10.)
-    sigma = kwargs.pop('sigma_ ', 5.)
-    gamma = kwargs.pop('gamma_ ', .5)
-    alpha = kwargs.pop('alpha_ ', 1.)
-
+    sigma = kwargs.pop('sigma_', 5.)
+    gamma = kwargs.pop('gamma_', .5)
+    alpha = kwargs.pop('alpha_', 1.)
+    n_images = kwargs.pop('n_images', 1)
     X_a = np.load(a_file)
     X_b = np.load(b_file)
     X_l = np.load(L_file)
     # X_gray = np.load(gray_file)
 
-    n_images = 1
     print('Subsetting to the first {} images'.format(n_images))
     X_a = X_a[:n_images, :]
     X_b = X_b[:n_images, :]
@@ -46,10 +45,10 @@ def load_data(a_file, b_file, L_file, **kwargs):
     lab_ab = lab_ab.transpose((0, 3, 1, 2))  # N, 3, H, W
     X_l = X_l.reshape(-1, 256, 256, 1)
 
-    _, Q_image = convert_image_Qspace(lab_ab=lab_ab, NN=NN, sigma=sigma, gamma=gamma, alpha=alpha,
-                                      ENC_DIR='')
+    _, Q_images = convert_image_Qspace(lab_ab=lab_ab, NN=NN, sigma=sigma, gamma=gamma, alpha=alpha,
+                                       ENC_DIR='')
 
-    return X_l, Q_image
+    return X_l, Q_images, lab_ab
 
 
 # creates a dictionary of batches of data
