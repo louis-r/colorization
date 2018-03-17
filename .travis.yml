@@ -10,7 +10,7 @@ install:
 
 script:
   # Tests
-  - python -m unittest discover -v
+  - python -m pytest
   # PyLint
   - make lint
 
