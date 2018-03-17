@@ -156,7 +156,7 @@ class NNEncode:
         return color.lab2rgb(res)
 
 
-class PriorFactor():
+class PriorFactor:
     """
     Class handles prior factor
     """
