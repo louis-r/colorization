@@ -5,6 +5,7 @@ Contributors:
 """
 # pylint: disable=C
 import os
+import datetime
 import numpy as np
 import tensorflow as tf
 # noinspection PyUnresolvedReferences
@@ -21,7 +22,7 @@ tf.app.flags.DEFINE_float('learning_rate', 1e-2,
                           """Learning rate.""")
 tf.app.flags.DEFINE_integer('n_steps', 1000,
                             """Number of training epochs.""")
-tf.app.flags.DEFINE_integer('batch_size', 100,
+tf.app.flags.DEFINE_integer('batch_size', 1,
                             """Batch size.""")
 
 FLAGS = tf.app.flags.FLAGS
@@ -37,13 +38,13 @@ H_out, W_out = 256, 256
 Q = 313
 
 # Load the data
-X_l, Q_images, y_true = load_data(a_file='../../data/X_lab_a0.npy',
-                                  b_file='../../data/X_lab_b0.npy',
-                                  L_file='../../data/X_lab_L0.npy',
-                                  n_images=batch_size)
-L = X_l.reshape(-1, H_in, W_in, 1)
-y_true = y_true.reshape(-1, H_in, W_in, 2)
-z_true = Q_images.reshape(-1, H_in, W_in, Q)
+L, z_true, y_true = load_data(a_file='../../data/X_lab_a0.npy',
+                              b_file='../../data/X_lab_b0.npy',
+                              L_file='../../data/X_lab_L0.npy',
+                              n_images=batch_size)
+assert L.shape == (batch_size, H_in, W_in, 1)
+assert y_true.shape == (batch_size, H_in, W_in, 2)
+assert z_true.shape == (batch_size, H_in, W_in, Q)
 
 model_name = 'lr={}_n_steps={}_batch_size={}'.format(learning_rate,
                                                      n_steps,
@@ -51,6 +52,7 @@ model_name = 'lr={}_n_steps={}_batch_size={}'.format(learning_rate,
 if prefix is not None:
     model_name = '{}_{}'.format(prefix, model_name)
 
+print('Training {} at {}'.format(model_name, datetime.datetime.now()))
 # Do not specify the size of the training batch
 L_tf = tf.placeholder(tf.float32, [None, H_in, W_in, 1], name='L_tf')
 # 56 shape from caffe_v1.txt
@@ -101,10 +103,10 @@ with tf.name_scope("optimizer"):
 max_outputs = min(batch_size, 3)
 max_outputs = 1
 tf.summary.image('L_tf', L_tf, max_outputs=max_outputs)
-recolorized_image_tf = tf.concat([y_pred_tf, L_tf], axis=3)
+recolorized_image_tf = tf.concat([L_tf, y_pred_tf], axis=3)
 tf.summary.image('recolorized_image_tf', lab_to_rgb(recolorized_image_tf), max_outputs=max_outputs)
-original_image = tf.concat([y_true_tf, L_tf], axis=3)
-tf.summary.image('colorized_image_tf', lab_to_rgb(original_image), max_outputs=max_outputs)
+original_image = tf.concat([L_tf, y_true_tf], axis=3)
+tf.summary.image('original_image_tf', lab_to_rgb(original_image), max_outputs=max_outputs)
 
 # Create summaries to visualize weights
 for var in tf.trainable_variables():

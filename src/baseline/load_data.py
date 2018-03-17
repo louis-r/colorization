@@ -42,12 +42,14 @@ def load_data(a_file, b_file, L_file, **kwargs):
 
     # Reshape
     lab_ab = lab_ab.reshape(-1, 256, 256, 2)
-    lab_ab = lab_ab.transpose((0, 3, 1, 2))  # N, 3, H, W
     X_l = X_l.reshape(-1, 256, 256, 1)
-
+    # Transpose for convert_image_Qspace
+    lab_ab = lab_ab.transpose((0, 3, 1, 2))  # N, 3, H, W
     _, Q_images = convert_image_Qspace(lab_ab=lab_ab, NN=NN, sigma=sigma, gamma=gamma, alpha=alpha,
                                        ENC_DIR='')
-
+    # Tranpose back to correct form
+    lab_ab = lab_ab.transpose(0, 2, 3, 1)
+    Q_images = Q_images.transpose(0, 2, 3, 1)
     return X_l, Q_images, lab_ab
 
 
@@ -70,3 +72,18 @@ def dict_batch(X_train, y_train, size_batch):
     Batch[Nb_batch] = (X[size_batch * (Nb_batch - 1):], y_train[size_batch * (Nb_batch - 1):])
 
     return Batch
+
+
+if __name__ == '__main__':
+    H_in, W_in = 256, 256
+    Q = 313
+
+    # Load the data
+    X_l, Q_images, y_true = load_data(a_file='../../data/X_lab_a0.npy',
+                                      b_file='../../data/X_lab_b0.npy',
+                                      L_file='../../data/X_lab_L0.npy',
+                                      n_images=1)
+
+    L = X_l.reshape(-1, H_in, W_in, 1)
+    y_true = y_true.reshape(-1, H_in, W_in, 2)
+    z_true = Q_images.reshape(-1, H_in, W_in, Q)
