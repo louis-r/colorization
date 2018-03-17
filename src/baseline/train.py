@@ -101,19 +101,27 @@ with tf.name_scope("optimizer"):
 
 # Display images
 max_outputs = min(batch_size, 3)
-max_outputs = 1
-tf.summary.image('L_tf', L_tf, max_outputs=max_outputs)
-recolorized_image_tf = tf.concat([L_tf, y_pred_tf], axis=3)
-tf.summary.image('recolorized_image_tf', lab_to_rgb(recolorized_image_tf), max_outputs=max_outputs)
-original_image = tf.concat([L_tf, y_true_tf], axis=3)
-tf.summary.image('original_image_tf', lab_to_rgb(original_image), max_outputs=max_outputs)
+L_summary = tf.summary.image(L_tf.name,
+                             L_tf,
+                             max_outputs=max_outputs)
+recolorized_image_tf = tf.concat([L_tf, y_pred_tf], axis=3, name='recolorized_image_tf')
+recolorized_image_summary = tf.summary.image(recolorized_image_tf.name,
+                                             lab_to_rgb(recolorized_image_tf),
+                                             max_outputs=max_outputs)
+original_image_tf = tf.concat([L_tf, y_true_tf], axis=3, name='original_image_tf')
+original_image_summary = tf.summary.image(original_image_tf.name,
+                                          lab_to_rgb(original_image_tf),
+                                          max_outputs=max_outputs)
 
 # Create summaries to visualize weights
+var_summaries = []
 for var in tf.trainable_variables():
-    tf.summary.histogram(var.name, var)
+    var_summaries.append(tf.summary.histogram(var.name, var))
 
-train_summaries_tf = tf.summary.merge_all()
+# train_summaries_tf = tf.summary.merge_all()
+train_summaries_tf = tf.summary.merge(var_summaries + [loss_summary_tf])
 test_summaries_tf = tf.summary.merge([loss_summary_tf])
+image_summaries_tf = tf.summary.merge([L_summary, recolorized_image_summary, original_image_summary])
 
 train_write_path = train_dir + model_name + '/train'
 test_write_path = train_dir + model_name + '/test'
@@ -133,23 +141,30 @@ with tf.Session() as sess:
 
     # Add TensorBoard graph
     train_writer.add_graph(sess.graph)
+
     print('Starting training for n_steps = {}'.format(n_steps))
     for step in range(n_steps):
         # Train
         batch_x = L
         batch_z = z_true
         batch_y = y_true
-
-        _, train_loss_val, s, y_pred_val = sess.run(
+        train_feed_dict = {
+            L_tf: batch_x,
+            z_true_tf: batch_z,
+            y_true_tf: batch_y,
+            pts_in_hull_tf: np.load('pts_in_hull.npy').astype(float),
+        }
+        _, train_loss_val, train_summaries, y_pred_val = sess.run(
             [train_step, loss, train_summaries_tf, y_pred_tf],
-            feed_dict={
-                L_tf: batch_x,
-                z_true_tf: batch_z,
-                y_true_tf: batch_y,
-                pts_in_hull_tf: np.load('pts_in_hull.npy').astype(float),
-            })
+            feed_dict=train_feed_dict)
 
-        train_writer.add_summary(s, step)
+        train_writer.add_summary(train_summaries, step)
+
+        # Also log image summaries
+        if step % 10 == 0:
+            image_summary = sess.run(image_summaries_tf,
+                                     feed_dict=train_feed_dict)
+            train_writer.add_summary(image_summary, step)
 
         print('TRAIN Step = %04d\tloss = %.6f' % (step + 1,
                                                   train_loss_val))
@@ -157,7 +172,7 @@ with tf.Session() as sess:
         # test_batch_x = np.random.rand(batch_size, H_in, W_in, 1)
         # # test_batch_y = np.random.rand(batch_size, H_out, W_out, 2)
         # test_batch_z = np.random.randint(low=0, high=2, size=(batch_size, H_out, W_out, Q))
-        # test_loss_val, s = sess.run(
+        # test_loss_val, train_summaries = sess.run(
         #     [loss, test_summaries_tf],
         #     feed_dict={
         #         L_tf: test_batch_x,
@@ -167,7 +182,7 @@ with tf.Session() as sess:
         # print('TEST Step = %04d\tloss = %.4f' % (step + 1,
         #                                          test_loss_val))
 
-        # test_writer.add_summary(s, step)
+        # test_writer.add_summary(train_summaries, step)
 
 print("Run the command line:\n"
       "--> tensorboard --logdir={} "
