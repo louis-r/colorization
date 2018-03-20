@@ -3,8 +3,7 @@
 Contributors:
     - Louis Rémus
 
-
-This is the V2 model!
+Implementation of the v2 model from the article
 """
 
 import tensorflow as tf
@@ -124,6 +123,7 @@ def build_baseline_model_v2(input_tf, pts_in_hull_tf):
     with tf.variable_scope('BCNN_{}'.format(8)):
         # Padding of 1
         x = return_padded(x=x)
+        # TODO This is a big hack
         # x = tf.layers.conv2d_transpose(inputs=x,
         #                                filters=256,
         #                                kernel_size=4,
@@ -171,10 +171,6 @@ def build_baseline_model_v2(input_tf, pts_in_hull_tf):
         z = tf.nn.softmax(logits=logits,
                           name='conv_{}_softmax'.format(9))
         # class8_ab
-        # class8_ab = tf.layers.conv2d(inputs=x,
-        #                              filters=2,
-        #                              kernel_size=1,
-        #                              name='conv_{}_INCORRECT_LAYER'.format(9))
         # Annealed mean
         class8_ab = tf.nn.conv2d(input=z,
                                  filter=tf.reshape(pts_in_hull_tf,
@@ -185,10 +181,5 @@ def build_baseline_model_v2(input_tf, pts_in_hull_tf):
 
         # Product layer
         # TODO Implement scale layer
-        # Tmp
-        # x = tf.reshape(x, [-1, 28 * 28 * 2])
-        # Softmax layer
-        # softmax = tf.nn.softmax(logits_tf=x,
-        #                         name='softmax_{}'.format(9))
 
     return logits, z, class8_ab
