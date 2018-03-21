@@ -12,13 +12,14 @@ def load_data(a_file, b_file, L_file, **kwargs):
     """
     Docstring @PH
     Args:
-        a_file ():
-        b_file ():
-        L_file ():
-        gray_file ():
+        a_file (): path to the a channel LAB
+        b_file (): path to the b channel LAB
+        L_file (): path to the L channel LAB
 
     Returns:
-
+        - X_l array for L channel
+        - Q_images array for ab quantized representation
+        - lab_ab array for a, b channels
     """
 
     NN = kwargs.pop('NN_ ', 10.)
@@ -29,7 +30,6 @@ def load_data(a_file, b_file, L_file, **kwargs):
     X_a = np.load(a_file)
     X_b = np.load(b_file)
     X_l = np.load(L_file)
-    # X_gray = np.load(gray_file)
 
     print('Subsetting to the first {} images'.format(n_images))
     X_a = X_a[:n_images, :]
@@ -43,9 +43,14 @@ def load_data(a_file, b_file, L_file, **kwargs):
     # Reshape
     lab_ab = lab_ab.reshape(-1, 256, 256, 2)
     X_l = X_l.reshape(-1, 256, 256, 1)
+
     # Transpose for convert_image_Qspace
     lab_ab = lab_ab.transpose((0, 3, 1, 2))  # N, 3, H, W
-    _, Q_images = convert_image_Qspace(lab_ab=lab_ab, NN=NN, sigma=sigma, gamma=gamma, alpha=alpha,
+    _, Q_images = convert_image_Qspace(lab_ab=lab_ab,
+                                       NN=NN,
+                                       sigma=sigma,
+                                       gamma=gamma,
+                                       alpha=alpha,
                                        ENC_DIR='')
     # Tranpose back to correct form
     lab_ab = lab_ab.transpose(0, 2, 3, 1)
