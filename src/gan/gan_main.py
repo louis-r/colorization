@@ -50,7 +50,11 @@ parser.add_argument('-s', '--save', action="store_true",
 parser.add_argument('--gpu', default=0, type=int,
                     help='Which GPU to use?')
 
+if not torch.cuda.is_available():
+    raise ValueError("Cuda is not available on this OS")
 
+
+# noinspection PyPep8Naming
 def main():
     global args, date
     args = parser.parse_args()
@@ -80,7 +84,7 @@ def main():
     model_G.cuda()
     model_D.cuda()
 
-    # optimizer
+    # Optimizer
     optimizer_G = optim.Adam(model_G.parameters(),
                              lr=args.lr, betas=(0.5, 0.999),
                              eps=1e-8, weight_decay=args.weight_decay)
@@ -98,8 +102,7 @@ def main():
     global L1
     L1 = nn.L1Loss()
 
-    # dataset
-    # data_root = '/home/users/u5612799/DATA/Spongebob/'
+    # Dataset
     data_root = args.path
     dataset = args.dataset
     if dataset == 'sc2':
@@ -118,24 +121,24 @@ def main():
         image_transform = transforms.Compose([transforms.CenterCrop(224),
                                               transforms.ToTensor()])
 
-    data_train = myDataset(data_root, mode='train',
+    data_train = myDataset(data_root,
+                           mode='train',
                            transform=image_transform,
                            types='raw',
                            shuffle=True,
-                           large=args.large
-                           )
+                           large=args.large)
 
     train_loader = data.DataLoader(data_train,
                                    batch_size=args.batch_size,
                                    shuffle=False,
                                    num_workers=4)
 
-    data_val = myDataset(data_root, mode='test',
+    data_val = myDataset(data_root,
+                         mode='test',
                          transform=image_transform,
                          types='raw',
                          shuffle=True,
-                         large=args.large
-                         )
+                         large=args.large)
 
     val_loader = data.DataLoader(data_val,
                                  batch_size=args.batch_size,
@@ -154,11 +157,18 @@ def main():
 
     global img_path
     size = ''
-    if args.large: size = '_Large'
-    img_path = 'img/%s/GAN_%s%s_%dL1_bs%d_%s_lr%s/' \
-               % (date, args.dataset, size, args.lamb, args.batch_size, 'Adam', str(args.lr))
-    model_path = 'model/%s/GAN_%s%s_%dL1_bs%d_%s_lr%s/' \
-                 % (date, args.dataset, size, args.lamb, args.batch_size, 'Adam', str(args.lr))
+    if args.large:
+        size = '_large'
+    img_path = 'img/{}{}_lambda={}_bs={}_lr={}/'.format(args.dataset,
+                                                        size,
+                                                        args.lamb,
+                                                        args.batch_size,
+                                                        str(args.lr))
+    model_path = 'model/{}{}_lambda={}_bs={}_lr={}/'.format(args.dataset,
+                                                            size,
+                                                            args.lamb,
+                                                            args.batch_size,
+                                                            str(args.lr))
     if not os.path.exists(img_path):
         os.makedirs(img_path)
     if not os.path.exists(model_path):
@@ -172,9 +182,9 @@ def main():
         print('-' * 20)
         if epoch == 0:
             val_lerrG, val_errD = validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch=-1)
-        # train
+        # Train
         train_errG, train_errD = train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, iteration)
-        # validate
+        # Validate
         val_lerrG, val_errD = validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch)
 
         plotter.train_update(train_errG, train_errD)
@@ -182,19 +192,17 @@ def main():
         plotter.draw(img_path + 'train_val.png')
 
         if args.save:
-            print('Saving check point')
+            print('Saving checkpoint')
             save_checkpoint({'epoch': epoch + 1,
                              'state_dict': model_G.state_dict(),
                              'optimizer': optimizer_G.state_dict(),
                              },
-                            filename=model_path + 'G_epoch%d.pth.tar' \
-                                                  % epoch)
+                            filename=os.path.join(model_path, 'G_epoch_{}.pth.tar'.format(epoch)))
             save_checkpoint({'epoch': epoch + 1,
                              'state_dict': model_D.state_dict(),
                              'optimizer': optimizer_D.state_dict(),
                              },
-                            filename=model_path + 'D_epoch%d.pth.tar' \
-                                                  % epoch)
+                            filename=os.path.join(model_path, 'D_epoch{}.pth.tar'.format(epoch)))
 
 
 def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, iteration):
@@ -217,9 +225,10 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         data, target = Variable(data.cuda()), Variable(target.cuda())
 
         ########################
-        # update D network
+        # Update D network
         ########################
-        # train with real
+
+        # Train with real
         model_D.zero_grad()
         output = model_D(target)
         label = torch.FloatTensor(target.size(0)).fill_(real_label).cuda()
@@ -240,8 +249,9 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         optimizer_D.step()
 
         ########################
-        # update G network
+        # Update G network
         ########################
+
         model_G.zero_grad()
         labelv = Variable(label.fill_(real_label))
         output = model_D(fake)

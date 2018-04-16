@@ -1,11 +1,13 @@
 import math
-import torch
 import torch.nn as nn
+# noinspection PyPep8Naming
 import torch.nn.functional as F
 
 
 class ConvGen(nn.Module):
-    '''Generator'''
+    """
+    Generator
+    """
 
     def __init__(self):
         super(ConvGen, self).__init__()
@@ -53,6 +55,15 @@ class ConvGen(nn.Module):
         self._initialize_weights()
 
     def forward(self, x):
+        """
+        We store the results of the convolutions
+
+        Args:
+            x ():
+
+        Returns:
+
+        """
         h = x
         h = self.conv1(h)
         h = self.bn1(h)
@@ -114,7 +125,9 @@ class ConvGen(nn.Module):
 
 
 class ConvDis(nn.Module):
-    '''Discriminator'''
+    """
+    Discriminator
+    """
 
     def __init__(self, large=False):
         super(ConvDis, self).__init__()
