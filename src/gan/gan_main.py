@@ -43,9 +43,8 @@ parser.add_argument('--model_G', default='', type=str,
                     help='Path to resume for Generator model')
 parser.add_argument('--model_D', default='', type=str,
                     help='Path to resume for Discriminator model')
-
-# parser.add_argument('-p', '--plot', action="store_true",
-#                     help='Plot accuracy and loss diagram?')
+parser.add_argument('-p', '--plot', action="store_true",
+                    help='Plot accuracy and loss diagram?')
 parser.add_argument('-s', '--save', action="store_true",
                     help='Save model?')
 parser.add_argument('--gpu', default=0, type=int,
