@@ -9,6 +9,7 @@ import numpy as np
 from skimage import io, color
 from matplotlib.pyplot import imshow
 import sklearn.neighbors as nn
+import tensorflow as tf
 
 
 def check_value(inds, val):
@@ -155,7 +156,7 @@ class NNEncode:
         return color.lab2rgb(res)
 
 
-class PriorFactor():
+class PriorFactor:
     """
     Class handles prior factor
     """
@@ -234,7 +235,7 @@ class PriorFactor():
         return np.vectorize(inv_map.get)(prior_Qimage)
 
 
-def convert_image_Qspace(filepath, NN, sigma, gamma, alpha, ENC_DIR=''):
+def convert_image_Qspace(lab_ab, NN, sigma, gamma, alpha, ENC_DIR=''):
     """
     Missing docstring
     Args:
@@ -248,29 +249,110 @@ def convert_image_Qspace(filepath, NN, sigma, gamma, alpha, ENC_DIR=''):
     Returns:
 
     """
-    rgb = io.imread(os.path.join(ENC_DIR, filepath))
-    lab = np.array([color.rgb2lab(rgb)]).transpose((0, 3, 1, 2))  # size NxXxYx3
+    # rgb = io.imread(os.path.join(ENC_DIR, filepath))
+    # lab = np.array([color.rgb2lab(rgb)]).transpose((0, 3, 1, 2))  # size NxHxWx3
+    # lab shape N, 3, H, W
 
     # Slice the image in L and ab slices
-    lab_ab = lab[:, 1:, :, :]
+    # lab_ab = lab[:, 1:, :, :]
 
     # km_filepath is a np array with the coordinates of the 313 classes
     nnenc = NNEncode(NN, sigma, km_filepath=os.path.join(ENC_DIR, 'pts_in_hull.npy'))
 
-    N = lab.shape[0]
-    X = lab.shape[2]
-    Y = lab.shape[3]
+    N = lab_ab.shape[0]
+    H = lab_ab.shape[2]
+    W = lab_ab.shape[3]
     Q = nnenc.K
 
     encode_lab = nnenc.encode_points_mtx_nd(lab_ab, axis=1)
-    encode_lab.reshape(N, Q, X, Y)
+    encode_lab.reshape(N, Q, H, W)
 
     # priorFile np array with class priors computed on the whole ImageNet dataset
-    pc = PriorFactor(alpha, gamma=gamma, verbose=False, priorFile=os.path.join(ENC_DIR, 'prior_probs.npy'))
-    res = pc.forward(encode_lab, axis=1)
-    res.reshape(N, 1, X, Y)
+    pc = PriorFactor(alpha,
+                     gamma=gamma,
+                     verbose=False,
+                     priorFile=os.path.join(ENC_DIR, 'prior_probs.npy'))
 
-    return res
+    res = pc.forward(encode_lab, axis=1)
+    res.reshape(N, 1, H, W)
+
+    return res, encode_lab
+
+
+# Tensorflow
+def check_image(image):
+    """
+    Checks tensorflow imag dimensions
+    Args:
+        image (tf.Tensor):
+
+    Returns:
+        Image with last dimension 3
+    """
+    assertion = tf.assert_equal(tf.shape(image)[-1], 3, message="image must have 3 color channels")
+    with tf.control_dependencies([assertion]):
+        image = tf.identity(image)
+
+    if image.get_shape().ndims not in (3, 4):
+        raise ValueError("image must be either 3 or 4 dimensions")
+
+    # make the last dimension 3 so that you can unstack the colors
+    shape = list(image.get_shape())
+    shape[-1] = 3
+    image.set_shape(shape)
+    return image
+
+
+def lab_to_rgb(lab):
+    """
+    Converts tensorflow LAB image to RGB
+    Args:
+        lab (tf.Tensor):
+
+    Returns:
+
+    """
+    with tf.name_scope("lab_to_rgb"):
+        lab = check_image(lab)
+        lab_pixels = tf.reshape(lab, [-1, 3])
+
+        # https://en.wikipedia.org/wiki/Lab_color_space#CIELAB-CIEXYZ_conversions
+        with tf.name_scope("cielab_to_xyz"):
+            # convert to fxfyfz
+            lab_to_fxfyfz = tf.constant([
+                #   fx      fy        fz
+                [1 / 116.0, 1 / 116.0, 1 / 116.0],  # l
+                [1 / 500.0, 0.0, 0.0],  # a
+                [0.0, 0.0, -1 / 200.0],  # b
+            ])
+            fxfyfz_pixels = tf.matmul(lab_pixels + tf.constant([16.0, 0.0, 0.0]), lab_to_fxfyfz)
+
+            # convert to xyz
+            epsilon = 6 / 29
+            linear_mask = tf.cast(fxfyfz_pixels <= epsilon, dtype=tf.float32)
+            exponential_mask = tf.cast(fxfyfz_pixels > epsilon, dtype=tf.float32)
+            xyz_pixels = (3 * epsilon ** 2 * (fxfyfz_pixels - 4 / 29)) * linear_mask + \
+                         (fxfyfz_pixels ** 3) * exponential_mask
+
+            # Denormalize for D65 white point
+            xyz_pixels = tf.multiply(xyz_pixels, [0.950456, 1.0, 1.088754])
+
+        with tf.name_scope("xyz_to_srgb"):
+            xyz_to_rgb = tf.constant([
+                #     r           g          b
+                [3.2404542, -0.9692660, 0.0556434],  # x
+                [-1.5371385, 1.8760108, -0.2040259],  # y
+                [-0.4985314, 0.0415560, 1.0572252],  # z
+            ])
+            rgb_pixels = tf.matmul(xyz_pixels, xyz_to_rgb)
+            # avoid a slightly negative number messing up the conversion
+            rgb_pixels = tf.clip_by_value(rgb_pixels, 0.0, 1.0)
+            linear_mask = tf.cast(rgb_pixels <= 0.0031308, dtype=tf.float32)
+            exponential_mask = tf.cast(rgb_pixels > 0.0031308, dtype=tf.float32)
+            srgb_pixels = (rgb_pixels * 12.92 * linear_mask) + ((rgb_pixels ** (
+                1 / 2.4) * 1.055) - 0.055) * exponential_mask
+
+        return tf.reshape(srgb_pixels, tf.shape(lab))
 
 
 if __name__ == '__main__':
@@ -282,12 +364,11 @@ if __name__ == '__main__':
     filepath_ = 'kitten.jpg'
 
     prior_Qimage = convert_image_Qspace(filepath_, NN_, sigma_, gamma_, alpha_, ENC_DIR='')
-    imshow(prior_Qimage[0, 0])
+    imshow(prior_Qimage[0, 0])  # pylint: disable=invalid-sequence-index
 
     # Now retrieve image from Q space to ab space
-
     pc = PriorFactor(alpha_, gamma=gamma_, verbose=False, priorFile=os.path.join('', 'prior_probs.npy'))
-    Qimage = pc.decode(prior_Qimage[0, 0])
+    Qimage = pc.decode(prior_Qimage[0, 0])  # pylint: disable=invalid-sequence-index
 
     nnenc = NNEncode(NN_, sigma_, km_filepath=os.path.join('', 'pts_in_hull.npy'))
 

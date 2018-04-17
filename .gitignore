@@ -3,10 +3,12 @@
 .idea/
 *data
 *runs/
+*model/
 
 # Files
 *.zip
 *.jpg
+*.png
 pylint_*
 
 # Byte-compiled / optimized / DLL files

@@ -1,11 +1,131 @@
 name: "LtoAB"
-
 layer {
-  name: "data_l"
-  type: "Input"
-  top: "data_l"
-  input_param {
-    shape { dim: 1 dim: 1 dim: 224 dim: 224 }
+  name: "data"
+  type: "Data"
+  top: "data"
+  include {    phase: TRAIN  }
+  transform_param {
+   mirror: true
+   crop_size: 176
+  }
+  data_param {
+    # source: "/PATH/TO/DATA/ilsvrc_lmdb/caffe-train-lmdb"
+    source: "/data/big/rzhang/dataset/ilsvrc_lmdb/caffe-train-lmdb" # [[REPLACE WITH YOUR PATH]]
+    batch_size: 40
+    backend: LMDB
+  }
+}
+layer {
+  name: "data"
+  type: "Data"
+  top: "data"
+  include {    phase: TEST  }
+  transform_param {
+   mirror: false
+   crop_size: 256
+  }
+  data_param {
+    # source: "/PATH/TO/DATA/ilsvrc_lmdb/caffe-val-lmdb"
+    source: "/data/big/rzhang/dataset/ilsvrc_lmdb/caffe-val-lmdb" # [[REPLACE WITH YOUR PATH]]
+    batch_size: 10
+    backend: LMDB
+  }
+}
+# ****************************
+# ***** Color Conversion *****
+# ****************************
+layer { # color conversion
+  type: 'Python'
+  name: 'img_lab'
+  bottom: "data"
+  top: "img_lab" # image in Lab space
+  python_param {
+    module: 'caffe_traininglayers'
+    layer: 'BGR2LabLayer'
+  }
+}
+layer {
+  name: "img_slice"
+  type: "Slice"
+  bottom: "img_lab"
+  top: "img_l" # [0,100]
+  top: "data_ab" # [-110,110]
+  propagate_down: false
+  slice_param {
+    axis: 1
+    slice_point: 1
+  }
+}
+layer { # 0-center data_l channel
+  name: "data_l_meansub"
+  type: "Scale"
+  bottom: "img_l"
+  top: "data_l" # [-50,50]
+  propagate_down: false
+  param {lr_mult: 0 decay_mult: 0}
+  param {lr_mult: 0 decay_mult: 0}
+  scale_param {
+    bias_term: True
+    filler {      type: 'constant'      value: 1    }
+    bias_filler {      type: 'constant'      value: -50    }
+  }
+}
+# ****************************
+# ***** PROCESS LABELS *******
+# ****************************
+layer { # subsample ab
+  name: 'data_ab_ss'
+  type: 'Convolution'
+  bottom: "data_ab"
+  top: "data_ab_ss" # subsampled colors
+  param {lr_mult: 0 decay_mult: 0}
+  param {lr_mult: 0 decay_mult: 0}
+  convolution_param {
+    num_output: 2
+    kernel_size: 1
+    stride: 4
+    group: 2
+    weight_filler { type: 'constant' value: 1 }
+  }
+}
+layer { # encode
+  type: 'Python'
+  name: 'ab_enc'
+  bottom: "data_ab_ss"
+  top: "gt_ab_313" # quantized gt colors
+  python_param {
+    module: 'caffe_traininglayers'
+    layer: 'NNEncLayer'
+  }
+}
+layer { # compute gray mask
+  type: 'Python'
+  name: 'nongray_mask'
+  bottom: "data_ab_ss"
+  top: "nongray_mask" # mask out grayscale images
+  python_param {
+    module: 'caffe_traininglayers'
+    layer: 'NonGrayMaskLayer'
+  }
+}
+layer { # compute prior boost
+  type: 'Python'
+  name: 'prior_boost'
+  bottom: "gt_ab_313"
+  top: "prior_boost" # gradient boosting factors
+  python_param {
+    module: 'caffe_traininglayers'
+    layer: 'PriorBoostLayer'
+  }
+}
+layer { # multiply nongray mask and prior boost
+  type: 'Eltwise'
+  name: 'prior_boost_nongray'
+  bottom: "prior_boost"
+  bottom: "nongray_mask"
+  top: "prior_boost_nongray"
+  eltwise_param {
+    operation: 0
   }
 }
 
@@ -17,8 +137,6 @@ layer {
   type: "Convolution"
   bottom: "data_l"
   top: "conv1_1"
-  # param {lr_mult: 0 decay_mult: 0}
-  # param {lr_mult: 0 decay_mult: 0}
   convolution_param {
     num_output: 64
     pad: 1
@@ -36,8 +154,6 @@ layer {
   type: "Convolution"
   bottom: "conv1_1"
   top: "conv1_2"
-  # param {lr_mult: 0 decay_mult: 0}
-  # param {lr_mult: 0 decay_mult: 0}
   convolution_param {
     num_output: 64
     pad: 1
@@ -71,8 +187,6 @@ layer {
   bottom: "conv1_2norm"
   # bottom: "pool1"
   top: "conv2_1"
-  # param {lr_mult: 0 decay_mult: 0}
-  # param {lr_mult: 0 decay_mult: 0}
   convolution_param {
     num_output: 128
     pad: 1
@@ -90,8 +204,6 @@ layer {
   type: "Convolution"
   bottom: "conv2_1"
   top: "conv2_2"
-  # param {lr_mult: 0 decay_mult: 0}
-  # param {lr_mult: 0 decay_mult: 0}
   convolution_param {
     num_output: 128
     pad: 1
@@ -125,8 +237,6 @@ layer {
   bottom: "conv2_2norm"
   # bottom: "pool2"
   top: "conv3_1"
-  # param {lr_mult: 0 decay_mult: 0}
-  # param {lr_mult: 0 decay_mult: 0}
   convolution_param {
     num_output: 256
     pad: 1
@@ -144,8 +254,6 @@ layer {
   type: "Convolution"
   bottom: "conv3_1"
   top: "conv3_2"
-  # param {lr_mult: 0 decay_mult: 0}
-  # param {lr_mult: 0 decay_mult: 0}
   convolution_param {
     num_output: 256
     pad: 1
@@ -163,8 +271,6 @@ layer {
   type: "Convolution"
   bottom: "conv3_2"
   top: "conv3_3"
-  # param {lr_mult: 0 decay_mult: 0}
-  # param {lr_mult: 0 decay_mult: 0}
   convolution_param {
     num_output: 256
     pad: 1
@@ -198,8 +304,6 @@ layer {
   bottom: "conv3_3norm"
   # bottom: "pool3"
   top: "conv4_1"
-  # param {lr_mult: 0 decay_mult: 0}
-  # param {lr_mult: 0 decay_mult: 0}
   convolution_param {
     num_output: 512
     kernel_size: 3
@@ -219,8 +323,6 @@ layer {
   type: "Convolution"
   bottom: "conv4_1"
   top: "conv4_2"
-  # param {lr_mult: 0 decay_mult: 0}
-  # param {lr_mult: 0 decay_mult: 0}
   convolution_param {
     num_output: 512
     kernel_size: 3
@@ -240,8 +342,6 @@ layer {
   type: "Convolution"
   bottom: "conv4_2"
   top: "conv4_3"
-  # param {lr_mult: 0 decay_mult: 0}
-  # param {lr_mult: 0 decay_mult: 0}
   convolution_param {
     num_output: 512
     kernel_size: 3
@@ -276,8 +376,6 @@ layer {
   bottom: "conv4_3norm"
   # bottom: "pool4"
   top: "conv5_1"
-  # param {lr_mult: 0 decay_mult: 0}
-  # param {lr_mult: 0 decay_mult: 0}
   convolution_param {
     num_output: 512
     kernel_size: 3
@@ -297,8 +395,6 @@ layer {
   type: "Convolution"
   bottom: "conv5_1"
   top: "conv5_2"
-  # param {lr_mult: 0 decay_mult: 0}
-  # param {lr_mult: 0 decay_mult: 0}
   convolution_param {
     num_output: 512
     kernel_size: 3
@@ -318,8 +414,6 @@ layer {
   type: "Convolution"
   bottom: "conv5_2"
   top: "conv5_3"
-  # param {lr_mult: 0 decay_mult: 0}
-  # param {lr_mult: 0 decay_mult: 0}
   convolution_param {
     num_output: 512
     kernel_size: 3
@@ -502,6 +596,7 @@ layer {
 }
 layer {
   name: "conv8_2"
+  # name: "conv8_2_"
   type: "Convolution"
   bottom: "conv8_1"
   top: "conv8_2"
@@ -536,9 +631,9 @@ layer {
   bottom: "conv8_3"
   top: "conv8_3"
 }
-# *******************
-# ***** Softmax *****
-# *******************
+# ****************************
+# ***** Unary prediction *****
+# ****************************
 layer {
   name: "conv8_313"
   type: "Convolution"
@@ -551,39 +646,28 @@ layer {
     dilation: 1
   }
 }
+# ***************************
+# ***** Boosting priors *****
+# ***************************
 layer {
-  name: "conv8_313_rh"
-  type: "Scale"
+  name: "conv8_313_boost"
+  type: "Python"
   bottom: "conv8_313"
-  top: "conv8_313_rh"
-  scale_param {
-    bias_term: false
-    filler {      type: 'constant'      value: 2.606    }
+  bottom: "prior_boost_nongray"
+  top: "conv8_313_boost"
+  python_param {
+    module: 'caffe_traininglayers'
+    layer: 'ClassRebalanceMultLayer'
   }
 }
+# ************************
+# ***** Softmax loss *****
+# ************************
 layer {
-  name: "class8_313_rh"
-  type: "Softmax"
-  bottom: "conv8_313_rh"
-  top: "class8_313_rh"
-}
-# ********************
-# ***** Decoding *****
-# ********************
-layer {
-  name: "class8_ab"
-  type: "Convolution"
-  bottom: "class8_313_rh"
-  top: "class8_ab"
-  convolution_param {
-    num_output: 2
-    kernel_size: 1
-    stride: 1
-    dilation: 1
-  }
-}
-layer {
-  name: "Silence"
-  type: "Silence"
-  bottom: "class8_ab"
+  name: "loss8_313"
+  type: "SoftmaxCrossEntropyLoss"
+  bottom: "conv8_313_boost"
+  bottom: "gt_ab_313"
+  top: 'loss8_313'
+  loss_weight: 1.0
 }

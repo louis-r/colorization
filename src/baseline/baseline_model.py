@@ -3,8 +3,7 @@
 Contributors:
     - Louis Rémus
 
-
-This is the V2 model!
+Implementation of the v2 model from the article
 """
 
 import tensorflow as tf
@@ -26,11 +25,10 @@ def return_padded(x, pad=1):
     return x_padded
 
 
-def build_baseline_model_v2(input_tf, pts_in_hull_tf, batch_size):
+def build_baseline_model_v2(input_tf, pts_in_hull_tf):
     """
     Build the baseline model
     Args:
-        batch_size ():
         pts_in_hull_tf ():
         input_tf (Tensor):
 
@@ -125,20 +123,32 @@ def build_baseline_model_v2(input_tf, pts_in_hull_tf, batch_size):
     with tf.variable_scope('BCNN_{}'.format(8)):
         # Padding of 1
         x = return_padded(x=x)
+        # TODO This is a big hack
         # x = tf.layers.conv2d_transpose(inputs=x,
         #                                filters=256,
         #                                kernel_size=4,
         #                                strides=2,
         #                                activation=tf.nn.relu,
         #                                name='conv_{}_1_deconvolution'.format(8))
+        x = tf.layers.conv2d_transpose(inputs=x,
+                                       filters=256,
+                                       kernel_size=25,
+                                       strides=7,
+                                       activation=tf.nn.relu)
 
+        # 34, 34, 512 -> 56, 56, 256
+        # filter_deconv = tf.Variable(tf.random_normal([34, 34, 256, 512]))
+        # x = tf.nn.conv2d_transpose(value=x,
+        #                            filter=filter_deconv,
+        #                            output_shape=tf.constant([batch_size, 56, 56, 256]),
+        #                            strides=[1, 2, 2, 1],
+        #                            padding='VALID')
         # 34, 34, 512 -> 64, 64, 256
-        filter_deconv = tf.Variable(tf.random_normal([34, 34, 256, 512]))
-        x = tf.nn.conv2d_transpose(value=x,
-                                   filter=filter_deconv,
-                                   output_shape=tf.constant([batch_size, 64, 64, 256]),
-                                   strides=[1, 2, 2, 1],
-                                   padding='VALID')
+        # x = tf.nn.conv2d_transpose(value=x,
+        #                            filter=filter_deconv,
+        #                            output_shape=tf.constant([batch_size, 64, 64, 256]),
+        #                            strides=[1, 2, 2, 1],
+        #                            padding='VALID')
         for j in range(2, 4):
             # Padding of 1
             x = return_padded(x=x)
@@ -161,10 +171,6 @@ def build_baseline_model_v2(input_tf, pts_in_hull_tf, batch_size):
         z = tf.nn.softmax(logits=logits,
                           name='conv_{}_softmax'.format(9))
         # class8_ab
-        # class8_ab = tf.layers.conv2d(inputs=x,
-        #                              filters=2,
-        #                              kernel_size=1,
-        #                              name='conv_{}_INCORRECT_LAYER'.format(9))
         # Annealed mean
         class8_ab = tf.nn.conv2d(input=z,
                                  filter=tf.reshape(pts_in_hull_tf,
@@ -175,10 +181,5 @@ def build_baseline_model_v2(input_tf, pts_in_hull_tf, batch_size):
 
         # Product layer
         # TODO Implement scale layer
-        # Tmp
-        # x = tf.reshape(x, [-1, 28 * 28 * 2])
-        # Softmax layer
-        # softmax = tf.nn.softmax(logits=x,
-        #                         name='softmax_{}'.format(9))
 
     return logits, z, class8_ab
