@@ -12,6 +12,7 @@ import os
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+from tensorboardX import SummaryWriter
 
 parser = argparse.ArgumentParser(description='Colorization using GAN')
 parser.add_argument('path', type=str,
@@ -49,9 +50,9 @@ if not torch.cuda.is_available():
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
 def main():
-    global args
+    global args, writer
     args = parser.parse_args()
-
+    writer = SummaryWriter()
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
 
     model_G = ConvGen()
@@ -265,6 +266,7 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         optimizer_G.step()  # Backprop
 
         # Store error values
+        writer.add_scalar('data/errG', errG.data[0])
         errorG.update(errG.data[0], target.size(0), history=1)
         errorD.update(errD.data[0], target.size(0), history=1)
         errorG_basic.update(errG.data[0], target.size(0), history=1)
