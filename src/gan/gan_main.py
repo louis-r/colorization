@@ -232,16 +232,16 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         model_D.zero_grad()
         output = model_D(target)
         label = torch.FloatTensor(target.size(0)).fill_(real_label).cuda()
-        labelv = Variable(label)
-        errD_real = criterion(torch.squeeze(output), labelv)
+        label_v = Variable(label)
+        errD_real = criterion(torch.squeeze(output), label_v)
         errD_real.backward()
         D_x = output.data.mean()
 
         # train with fake
         fake = model_G(data)
-        labelv = Variable(label.fill_(fake_label))
+        label_v = Variable(label.fill_(fake_label))
         output = model_D(fake.detach())
-        errD_fake = criterion(torch.squeeze(output), labelv)
+        errD_fake = criterion(torch.squeeze(output), label_v)
         errD_fake.backward()
         D_G_x1 = output.data.mean()
 
@@ -253,9 +253,9 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         ########################
 
         model_G.zero_grad()
-        labelv = Variable(label.fill_(real_label))
+        label_v = Variable(label.fill_(real_label))
         output = model_D(fake)
-        errG_GAN = criterion(torch.squeeze(output), labelv)
+        errG_GAN = criterion(torch.squeeze(output), label_v)
         errG_L1 = L1(fake.view(fake.size(0), -1), target.view(target.size(0), -1))
 
         errG = errG_GAN + args.lamb * errG_L1
@@ -263,7 +263,7 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         D_G_x2 = output.data.mean()
         optimizer_G.step()
 
-        # store error values
+        # Store error values
         errorG.update(errG.data[0], target.size(0), history=1)
         errorD.update(errD.data[0], target.size(0), history=1)
         errorG_basic.update(errG.data[0], target.size(0), history=1)
@@ -276,19 +276,20 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         errorG_GAN.update(errG_GAN.data[0], target.size(0), history=1)
         errorG_R.update(errG_L1.data[0], target.size(0), history=1)
 
+        # Print loss
         if iteration % print_interval == 0:
-            print(
-                'Epoch%d[%d/%d]: Loss_D: %.4f(R%0.4f+F%0.4f) Loss_G: %0.4f(GAN%.4f+R%0.4f) D(x): %.4f D(G(z)): %.4f / %.4f' \
-                % (epoch, i, len(train_loader),
-                   errorD_basic.avg, errorD_real.avg, errorD_fake.avg,
-                   errorG_basic.avg, errorG_GAN.avg, errorG_R.avg,
-                   D_x, D_G_x1, D_G_x2
-                   ))
-            # plot image
+            print('Epoch {}: [{}/{}]: Loss_D: {:.4f}(R {:.4f} + F {:.4f})\tLoss_G: {.4f}(GAN {:.4f} + R {:0.4f})'
+                  'D(x): {:.4f} D(G(z)): {:.4f} / {:.4f}'.format(epoch, i, len(train_loader),
+                                                                 errorD_basic.avg, errorD_real.avg, errorD_fake.avg,
+                                                                 errorG_basic.avg, errorG_GAN.avg, errorG_R.avg,
+                                                                 D_x, D_G_x1, D_G_x2
+                                                                 ))
+            # Plot image
             plotter_basic.g_update(errorG_basic.avg)
             plotter_basic.d_update(errorD_basic.avg)
             plotter_basic.draw(img_path + 'train_basic.png')
-            # reset AverageMeter
+
+            # Reset AverageMeter
             errorG_basic.reset()
             errorD_basic.reset()
             errorD_real.reset()
@@ -313,29 +314,31 @@ def validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch):
 
     for i, (data, target) in enumerate(val_loader):
         data, target = Variable(data.cuda()), Variable(target.cuda())
+
         ########################
         # D network
         ########################
-        # validate with real
+        # Validate with real
         output = model_D(target)
         label = torch.FloatTensor(target.size(0)).fill_(real_label).cuda()
-        labelv = Variable(label)
-        errD_real = criterion(torch.squeeze(output), labelv)
+        label_v = Variable(label)
+        errD_real = criterion(torch.squeeze(output), label_v)
 
-        # validate with fake
+        # Validate with fake
         fake = model_G(data)
-        labelv = Variable(label.fill_(fake_label))
+        label_v = Variable(label.fill_(fake_label))
         output = model_D(fake.detach())
-        errD_fake = criterion(torch.squeeze(output), labelv)
+        errD_fake = criterion(torch.squeeze(output), label_v)
 
         errD = errD_real + errD_fake
 
         ########################
         # G network
         ########################
-        labelv = Variable(label.fill_(real_label))
+
+        label_v = Variable(label.fill_(real_label))
         output = model_D(fake)
-        errG_GAN = criterion(torch.squeeze(output), labelv)
+        errG_GAN = criterion(torch.squeeze(output), label_v)
         errG_L1 = L1(fake.view(fake.size(0), -1), target.view(target.size(0), -1))
 
         errG = errG_GAN + args.lamb * errG_L1
@@ -347,17 +350,16 @@ def validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch):
             vis_result(data.data, target.data, fake.data, epoch)
 
         if i % 50 == 0:
-            print('Validating Epoch %d: [%d/%d]' \
-                  % (epoch, i, len(val_loader)))
+            print('Validating Epoch {}: [{}/{}]'.format(epoch, i, len(val_loader)))
 
-    print('Validation: Loss_D: %.4f Loss_G: %.4f ' \
-          % (errorD.avg, errorG.avg))
-
+    print('Validation: Loss_D: {:.4f}\tLoss_G: {:.4f}'.format(errorD.avg, errorG.avg))
     return errorG.avg, errorD.avg
 
 
 def vis_result(data, target, output, epoch):
-    '''visualize images for GAN'''
+    """
+    Visualize images for GAN
+    """
     img_list = []
     for i in range(min(32, val_bs)):
         l = torch.unsqueeze(torch.squeeze(data[i]), 0).cpu().numpy()
