@@ -20,6 +20,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
+from tensorboardX import SummaryWriter
 
 parser = argparse.ArgumentParser(description='Colorization using GAN')
 parser.add_argument('path', type=str,
@@ -53,10 +54,10 @@ parser.add_argument('--gpu', default=0, type=int,
                     help='Which GPU to use?')
 
 def main():
-    global args, date
+    global args, date, writer
     args = parser.parse_args()
     date = '1220'
-
+    writer = SummaryWriter()
     os.environ["CUDA_VISIBLE_DEVICES"]=str(args.gpu)
 
     model_G = ConvGen()
@@ -256,16 +257,28 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         optimizer_G.step()
 
         # store error values
-        errorG.update(errG.data[0], target.size(0), history=1)
+        writer.add_scalar('errG', errG.data[0], iteration)
+        writer.add_scalar('errD', errD.data[0], iteration)
+        
+	writer.add_scalar('errG_real', errG_real.data[0], iteration)
+        writer.add_scalar('errD_real', errD_real.data[0], iteration)
+        
+        writer.add_scalar('errG_fake', errG_fake.data[0], iteration)
+        writer.add_scalar('errD_fake', errD_fake.data[0], iteration)
+        
+	errorG.update(errG.data[0], target.size(0), history=1)
         errorD.update(errD.data[0], target.size(0), history=1)
-        errorG_basic.update(errG.data[0], target.size(0), history=1)
+        
+	errorG_basic.update(errG.data[0], target.size(0), history=1)
         errorD_basic.update(errD.data[0], target.size(0), history=1)
-        errorD_real.update(errD_real.data[0], target.size(0), history=1)
+        
+	errorD_real.update(errD_real.data[0], target.size(0), history=1)
         errorD_fake.update(errD_fake.data[0], target.size(0), history=1)
 
         errorD_real.update(errD_real.data[0], target.size(0), history=1)
         errorD_fake.update(errD_fake.data[0], target.size(0), history=1)
-        errorG_GAN.update(errG_GAN.data[0], target.size(0), history=1)
+        
+	errorG_GAN.update(errG_GAN.data[0], target.size(0), history=1)
         errorG_R.update(errG_L1.data[0], target.size(0), history=1)
 
 
