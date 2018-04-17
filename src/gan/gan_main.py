@@ -56,9 +56,8 @@ if not torch.cuda.is_available():
 
 # noinspection PyPep8Naming
 def main():
-    global args, date
+    global args
     args = parser.parse_args()
-    date = '1220'
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
 
@@ -278,16 +277,18 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
 
         # Print loss
         if iteration % print_interval == 0:
-            print('Epoch {}: [{}/{}]: Loss_D: {:.4f}(R {:.4f} + F {:.4f})\tLoss_G: {.4f}(GAN {:.4f} + R {:0.4f})'
-                  'D(x): {:.4f} D(G(z)): {:.4f} / {:.4f}'.format(epoch, i, len(train_loader),
-                                                                 errorD_basic.avg, errorD_real.avg, errorD_fake.avg,
-                                                                 errorG_basic.avg, errorG_GAN.avg, errorG_R.avg,
-                                                                 D_x, D_G_x1, D_G_x2
-                                                                 ))
+            print(
+                'Training epoch {}: [{}/{}]: '
+                'Loss_D: {:.4f}(R {:.4f} + F {:.4f})\tLoss_G: {.4f}(GAN {:.4f} + R {:0.4f})'
+                'D(x): {:.4f} D(G(z)): {:.4f} / {:.4f}'.format(epoch, i, len(train_loader),
+                                                               errorD_basic.avg, errorD_real.avg, errorD_fake.avg,
+                                                               errorG_basic.avg, errorG_GAN.avg, errorG_R.avg,
+                                                               D_x, D_G_x1, D_G_x2
+                                                               ))
             # Plot image
             plotter_basic.g_update(errorG_basic.avg)
             plotter_basic.d_update(errorD_basic.avg)
-            plotter_basic.draw(img_path + 'train_basic.png')
+            plotter_basic.draw(os.path.join(img_path, 'train_basic.png'))
 
             # Reset AverageMeter
             errorG_basic.reset()
@@ -297,7 +298,7 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
             errorG_GAN.reset()
             errorG_R.reset()
 
-        iteration += 1
+            iteration += 1
 
     return errorG.avg, errorD.avg
 
@@ -350,7 +351,7 @@ def validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch):
             vis_result(data.data, target.data, fake.data, epoch)
 
         if i % 50 == 0:
-            print('Validating Epoch {}: [{}/{}]'.format(epoch, i, len(val_loader)))
+            print('Validating epoch {}: [{}/{}]'.format(epoch, i, len(val_loader)))
 
     print('Validation: Loss_D: {:.4f}\tLoss_G: {:.4f}'.format(errorD.avg, errorG.avg))
     return errorG.avg, errorD.avg
