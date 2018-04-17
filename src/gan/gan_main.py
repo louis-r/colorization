@@ -1,6 +1,5 @@
-# from transform import ReLabel, ToLabel, ToSP, Scale
-from gan_model import *
-from utils import *
+from gan_model import ConvGen, ConvDis
+from utils import AverageMeter, save_checkpoint, Plotter_GAN_TV, Plotter_GAN
 
 import torch
 import torch.nn as nn
@@ -48,7 +47,7 @@ if not torch.cuda.is_available():
     raise ValueError("Cuda is not available on this OS")
 
 
-# noinspection PyPep8Naming
+# noinspection PyPep8Naming,PyUnresolvedReferences
 def main():
     global args
     args = parser.parse_args()
@@ -60,19 +59,21 @@ def main():
 
     start_epoch_G = start_epoch_D = 0
     if args.model_G:
-        print('Resume model G: %s' % args.model_G)
-        checkpoint_G = torch.load(resume)
+        print('Resuming model G: {}'.format(args.model_G))
+        checkpoint_G = torch.load(args.model_G)
         model_G.load_state_dict(checkpoint_G['state_dict'])
         start_epoch_G = checkpoint_G['epoch']
+
     if args.model_D:
-        print('Resume model D: %s' % args.model_D)
-        checkpoint_D = torch.load(resume)
+        print('Resuming model D: {}'.format(args.model_D))
+        checkpoint_D = torch.load(args.model_D)
         model_D.load_state_dict(checkpoint_D['state_dict'])
         start_epoch_D = checkpoint_D['epoch']
+    # Check
     assert start_epoch_G == start_epoch_D
+
     if args.model_G == '' and args.model_D == '':
-        print('No Resume')
-        start_epoch = 0
+        print('Not resume training.')
 
     model_G.cuda()
     model_D.cuda()
@@ -84,18 +85,20 @@ def main():
     optimizer_D = optim.Adam(model_D.parameters(),
                              lr=args.lr, betas=(0.5, 0.999),
                              eps=1e-8, weight_decay=args.weight_decay)
+    # Load the optimizers
     if args.model_G:
         optimizer_G.load_state_dict(checkpoint_G['optimizer'])
     if args.model_D:
         optimizer_D.load_state_dict(checkpoint_D['optimizer'])
 
-    # loss function
+    # Loss function
     global criterion
+    # Binary cross entropy loss
     criterion = nn.BCELoss()
     global L1
     L1 = nn.L1Loss()
 
-    # Dataset
+    # Load the dataset
     data_root = args.path
     dataset = args.dataset
     if dataset == 'sc2':
@@ -107,6 +110,7 @@ def main():
     else:
         raise ValueError('dataset type not supported')
 
+    # Load images
     if args.large:
         image_transform = transforms.Compose([transforms.CenterCrop(480),
                                               transforms.ToTensor()])
@@ -138,8 +142,9 @@ def main():
                                  shuffle=False,
                                  num_workers=4)
 
-    global val_bs
-    val_bs = val_loader.batch_size
+    # Get batch_size
+    global val_batch_size
+    val_batch_size = val_loader.batch_size
 
     # set up plotter, path, etc.
     global iteration, print_interval, plotter, plotter_basic
@@ -162,8 +167,10 @@ def main():
                                                             args.lamb,
                                                             args.batch_size,
                                                             str(args.lr))
+    # Create the folders
     if not os.path.exists(img_path):
         os.makedirs(img_path)
+
     if not os.path.exists(model_path):
         os.makedirs(model_path)
 
@@ -208,6 +215,7 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
     errorG_GAN = AverageMeter()
     errorG_R = AverageMeter()
 
+    # Switch to train mode
     model_G.train()
     model_D.train()
 
@@ -222,39 +230,39 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         ########################
 
         # Train with real
-        model_D.zero_grad()
+        model_D.zero_grad()  # Reset the gradients
         output = model_D(target)
         label = torch.FloatTensor(target.size(0)).fill_(real_label).cuda()
         label_v = Variable(label)
         errD_real = criterion(torch.squeeze(output), label_v)
-        errD_real.backward()
+        errD_real.backward()  # Compute the gradients
         D_x = output.data.mean()
 
-        # train with fake
+        # Train with fake
         fake = model_G(data)
         label_v = Variable(label.fill_(fake_label))
         output = model_D(fake.detach())
         errD_fake = criterion(torch.squeeze(output), label_v)
-        errD_fake.backward()
+        errD_fake.backward()  # Compute the gradients
         D_G_x1 = output.data.mean()
 
         errD = errD_real + errD_fake
-        optimizer_D.step()
+        optimizer_D.step()  # Backprop
 
         ########################
         # Update G network
         ########################
 
-        model_G.zero_grad()
+        model_G.zero_grad()  # Reset the gradients
         label_v = Variable(label.fill_(real_label))
         output = model_D(fake)
         errG_GAN = criterion(torch.squeeze(output), label_v)
         errG_L1 = L1(fake.view(fake.size(0), -1), target.view(target.size(0), -1))
 
         errG = errG_GAN + args.lamb * errG_L1
-        errG.backward()
+        errG.backward()  # Compute the gradients
         D_G_x2 = output.data.mean()
-        optimizer_G.step()
+        optimizer_G.step()  # Backprop
 
         # Store error values
         errorG.update(errG.data[0], target.size(0), history=1)
@@ -356,7 +364,7 @@ def vis_result(data, target, output, epoch):
     Visualize images for GAN
     """
     img_list = []
-    for i in range(min(32, val_bs)):
+    for i in range(min(32, val_batch_size)):
         l = torch.unsqueeze(torch.squeeze(data[i]), 0).cpu().numpy()
         raw = target[i].cpu().numpy()
         pred = output[i].cpu().numpy()
