@@ -26,7 +26,7 @@ parser = argparse.ArgumentParser(description='Colorization using GAN')
 parser.add_argument('path', type=str,
                     help='Root path for dataset')
 parser.add_argument('--dataset', type=str,
-                    help='which dataset?', choices=['sc2','flower','bob'])
+                    help='which dataset?', choices=['sc2', 'flower', 'bob'])
 parser.add_argument('--large', action="store_true",
                     help='Use larger images?')
 parser.add_argument('--batch_size', default=4, type=int,
@@ -48,17 +48,18 @@ parser.add_argument('--model_D', default='', type=str,
 
 # parser.add_argument('-p', '--plot', action="store_true",
 #                     help='Plot accuracy and loss diagram?')
-parser.add_argument('-s','--save', action="store_true",
+parser.add_argument('-s', '--save', action="store_true",
                     help='Save model?')
 parser.add_argument('--gpu', default=0, type=int,
                     help='Which GPU to use?')
+
 
 def main():
     global args, date, writer
     args = parser.parse_args()
     date = '1220'
     writer = SummaryWriter()
-    os.environ["CUDA_VISIBLE_DEVICES"]=str(args.gpu)
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
 
     model_G = ConvGen()
     model_D = ConvDis(large=args.large)
@@ -121,28 +122,28 @@ def main():
                                               transforms.ToTensor()])
 
     data_train = myDataset(data_root, mode='train',
-                      transform=image_transform,
-                      types='raw',
-                      shuffle=True,
-                      large=args.large
-                      )
+                           transform=image_transform,
+                           types='raw',
+                           shuffle=True,
+                           large=args.large
+                           )
 
     train_loader = data.DataLoader(data_train,
-                                  batch_size=args.batch_size,
-                                  shuffle=False,
-                                  num_workers=4)
+                                   batch_size=args.batch_size,
+                                   shuffle=False,
+                                   num_workers=4)
 
     data_val = myDataset(data_root, mode='test',
-                      transform=image_transform,
-                      types='raw',
-                      shuffle=True,
-                      large=args.large
-                      )
+                         transform=image_transform,
+                         types='raw',
+                         shuffle=True,
+                         large=args.large
+                         )
 
     val_loader = data.DataLoader(data_val,
-                                  batch_size=args.batch_size,
-                                  shuffle=False,
-                                  num_workers=4)
+                                 batch_size=args.batch_size,
+                                 shuffle=False,
+                                 num_workers=4)
 
     global val_bs
     val_bs = val_loader.batch_size
@@ -160,7 +161,7 @@ def main():
     img_path = 'img/%s/GAN_%s%s_%dL1_bs%d_%s_lr%s/' \
                % (date, args.dataset, size, args.lamb, args.batch_size, 'Adam', str(args.lr))
     model_path = 'model/%s/GAN_%s%s_%dL1_bs%d_%s_lr%s/' \
-               % (date, args.dataset, size, args.lamb, args.batch_size, 'Adam', str(args.lr))
+                 % (date, args.dataset, size, args.lamb, args.batch_size, 'Adam', str(args.lr))
     if not os.path.exists(img_path):
         os.makedirs(img_path)
     if not os.path.exists(model_path):
@@ -189,22 +190,21 @@ def main():
                              'state_dict': model_G.state_dict(),
                              'optimizer': optimizer_G.state_dict(),
                              },
-                             filename=model_path+'G_epoch%d.pth.tar' \
-                             % epoch)
+                            filename=model_path + 'G_epoch%d.pth.tar' \
+                                                  % epoch)
             save_checkpoint({'epoch': epoch + 1,
                              'state_dict': model_D.state_dict(),
                              'optimizer': optimizer_D.state_dict(),
                              },
-                             filename=model_path+'D_epoch%d.pth.tar' \
-                             % epoch)
-
+                            filename=model_path + 'D_epoch%d.pth.tar' \
+                                                  % epoch)
 
 
 def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, iteration):
-    errorG = AverageMeter() # will be reset after each epoch
-    errorD = AverageMeter() # will be reset after each epoch
-    errorG_basic = AverageMeter() # basic will be reset after each print
-    errorD_basic = AverageMeter() # basic will be reset after each print
+    errorG = AverageMeter()  # will be reset after each epoch
+    errorD = AverageMeter()  # will be reset after each epoch
+    errorG_basic = AverageMeter()  # basic will be reset after each print
+    errorD_basic = AverageMeter()  # basic will be reset after each print
     errorD_real = AverageMeter()
     errorD_fake = AverageMeter()
     errorG_GAN = AverageMeter()
@@ -232,7 +232,7 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         D_x = output.data.mean()
 
         # train with fake
-        fake =  model_G(data)
+        fake = model_G(data)
         labelv = Variable(label.fill_(fake_label))
         output = model_D(fake.detach())
         errD_fake = criterion(torch.squeeze(output), labelv)
@@ -249,7 +249,7 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         labelv = Variable(label.fill_(real_label))
         output = model_D(fake)
         errG_GAN = criterion(torch.squeeze(output), labelv)
-        errG_L1 = L1(fake.view(fake.size(0),-1), target.view(target.size(0),-1))
+        errG_L1 = L1(fake.view(fake.size(0), -1), target.view(target.size(0), -1))
 
         errG = errG_GAN + args.lamb * errG_L1
         errG.backward()
@@ -259,36 +259,33 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         # store error values
         writer.add_scalar('errG', errG.data[0], iteration)
         writer.add_scalar('errD', errD.data[0], iteration)
-        
-	writer.add_scalar('errG_real', errG_real.data[0], iteration)
+
         writer.add_scalar('errD_real', errD_real.data[0], iteration)
-        
-        writer.add_scalar('errG_fake', errG_fake.data[0], iteration)
         writer.add_scalar('errD_fake', errD_fake.data[0], iteration)
-        
-	errorG.update(errG.data[0], target.size(0), history=1)
+
+        errorG.update(errG.data[0], target.size(0), history=1)
         errorD.update(errD.data[0], target.size(0), history=1)
-        
-	errorG_basic.update(errG.data[0], target.size(0), history=1)
+
+        errorG_basic.update(errG.data[0], target.size(0), history=1)
         errorD_basic.update(errD.data[0], target.size(0), history=1)
-        
-	errorD_real.update(errD_real.data[0], target.size(0), history=1)
+
+        errorD_real.update(errD_real.data[0], target.size(0), history=1)
         errorD_fake.update(errD_fake.data[0], target.size(0), history=1)
 
         errorD_real.update(errD_real.data[0], target.size(0), history=1)
         errorD_fake.update(errD_fake.data[0], target.size(0), history=1)
-        
-	errorG_GAN.update(errG_GAN.data[0], target.size(0), history=1)
+
+        errorG_GAN.update(errG_GAN.data[0], target.size(0), history=1)
         errorG_R.update(errG_L1.data[0], target.size(0), history=1)
 
-
         if iteration % print_interval == 0:
-            print('Epoch%d[%d/%d]: Loss_D: %.4f(R%0.4f+F%0.4f) Loss_G: %0.4f(GAN%.4f+R%0.4f) D(x): %.4f D(G(z)): %.4f / %.4f' \
+            print(
+                'Epoch%d[%d/%d]: Loss_D: %.4f(R%0.4f+F%0.4f) Loss_G: %0.4f(GAN%.4f+R%0.4f) D(x): %.4f D(G(z)): %.4f / %.4f' \
                 % (epoch, i, len(train_loader),
-                errorD_basic.avg, errorD_real.avg, errorD_fake.avg,
-                errorG_basic.avg, errorG_GAN.avg, errorG_R.avg,
-                D_x, D_G_x1, D_G_x2
-                ))
+                   errorD_basic.avg, errorD_real.avg, errorD_fake.avg,
+                   errorG_basic.avg, errorG_GAN.avg, errorG_R.avg,
+                   D_x, D_G_x1, D_G_x2
+                   ))
             # plot image
             plotter_basic.g_update(errorG_basic.avg)
             plotter_basic.d_update(errorD_basic.avg)
@@ -328,7 +325,7 @@ def validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch):
         errD_real = criterion(torch.squeeze(output), labelv)
 
         # validate with fake
-        fake =  model_G(data)
+        fake = model_G(data)
         labelv = Variable(label.fill_(fake_label))
         output = model_D(fake.detach())
         errD_fake = criterion(torch.squeeze(output), labelv)
@@ -341,7 +338,7 @@ def validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch):
         labelv = Variable(label.fill_(real_label))
         output = model_D(fake)
         errG_GAN = criterion(torch.squeeze(output), labelv)
-        errG_L1 = L1(fake.view(fake.size(0),-1), target.view(target.size(0),-1))
+        errG_L1 = L1(fake.view(fake.size(0), -1), target.view(target.size(0), -1))
 
         errG = errG_GAN + args.lamb * errG_L1
 
@@ -353,12 +350,13 @@ def validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch):
 
         if i % 50 == 0:
             print('Validating Epoch %d: [%d/%d]' \
-                % (epoch, i, len(val_loader)))
+                  % (epoch, i, len(val_loader)))
 
-    print('Validation: Loss_D: %.4f Loss_G: %.4f '\
-        % (errorD.avg, errorG.avg))
+    print('Validation: Loss_D: %.4f Loss_G: %.4f ' \
+          % (errorD.avg, errorG.avg))
 
     return errorG.avg, errorD.avg
+
 
 def vis_result(data, target, output, epoch):
     '''visualize images for GAN'''
@@ -368,22 +366,23 @@ def vis_result(data, target, output, epoch):
         raw = target[i].cpu().numpy()
         pred = output[i].cpu().numpy()
 
-        raw_rgb = (np.transpose(raw, (1,2,0)).astype(np.float64) + 1) / 2.
-        pred_rgb = (np.transpose(pred, (1,2,0)).astype(np.float64) + 1) / 2.
+        raw_rgb = (np.transpose(raw, (1, 2, 0)).astype(np.float64) + 1) / 2.
+        pred_rgb = (np.transpose(pred, (1, 2, 0)).astype(np.float64) + 1) / 2.
 
-        grey = np.transpose(l, (1,2,0))
+        grey = np.transpose(l, (1, 2, 0))
         grey = np.repeat(grey, 3, axis=2).astype(np.float64)
         img_list.append(np.concatenate((grey, raw_rgb, pred_rgb), 1))
 
-    img_list = [np.concatenate(img_list[4*i:4*(i+1)], axis=1) for i in range(len(img_list) // 4)]
+    img_list = [np.concatenate(img_list[4 * i:4 * (i + 1)], axis=1) for i in range(len(img_list) // 4)]
     img_list = np.concatenate(img_list, axis=0)
 
-    plt.figure(figsize=(36,27))
+    plt.figure(figsize=(36, 27))
     plt.imshow(img_list)
     plt.axis('off')
     plt.tight_layout()
     plt.savefig(img_path + 'epoch%d_val.png' % epoch)
     plt.clf()
+
 
 if __name__ == '__main__':
     main()
