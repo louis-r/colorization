@@ -45,7 +45,6 @@ parser.add_argument('--model_G', default='', type=str,
                     help='Path to resume for Generator model')
 parser.add_argument('--model_D', default='', type=str,
                     help='Path to resume for Discriminator model')
-
 # parser.add_argument('-p', '--plot', action="store_true",
 #                     help='Plot accuracy and loss diagram?')
 parser.add_argument('-s', '--save', action="store_true",
@@ -57,7 +56,7 @@ parser.add_argument('--gpu', default=0, type=int,
 def main():
     global args, date, writer
     args = parser.parse_args()
-    date = '1220'
+    # date = '1220'
     writer = SummaryWriter()
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
 
@@ -65,20 +64,23 @@ def main():
     model_D = ConvDis(large=args.large)
 
     start_epoch_G = start_epoch_D = 0
+
     if args.model_G:
-        print('Resume model G: %s' % args.model_G)
-        checkpoint_G = torch.load(resume)
+        print('Resuming model G: {}'.format(args.model_G))
+        checkpoint_G = torch.load(args.model_G)
         model_G.load_state_dict(checkpoint_G['state_dict'])
         start_epoch_G = checkpoint_G['epoch']
+
     if args.model_D:
-        print('Resume model D: %s' % args.model_D)
-        checkpoint_D = torch.load(resume)
+        print('Resuming model D: {}'.format(args.model_D))
+        checkpoint_D = torch.load(args.model_D)
         model_D.load_state_dict(checkpoint_D['state_dict'])
         start_epoch_D = checkpoint_D['epoch']
+    # Check
     assert start_epoch_G == start_epoch_D
+
     if args.model_G == '' and args.model_D == '':
-        print('No Resume')
-        start_epoch = 0
+        print('Not resume training.')
 
     model_G.cuda()
     model_D.cuda()
@@ -157,13 +159,22 @@ def main():
 
     global img_path
     size = ''
-    if args.large: size = '_Large'
-    img_path = 'img/%s/GAN_%s%s_%dL1_bs%d_%s_lr%s/' \
-               % (date, args.dataset, size, args.lamb, args.batch_size, 'Adam', str(args.lr))
-    model_path = 'model/%s/GAN_%s%s_%dL1_bs%d_%s_lr%s/' \
-                 % (date, args.dataset, size, args.lamb, args.batch_size, 'Adam', str(args.lr))
+    if args.large:
+        size = '_large'
+    img_path = 'img/{}{}_lambda={}_bs={}_lr={}/'.format(args.dataset,
+                                                        size,
+                                                        args.lamb,
+                                                        args.batch_size,
+                                                        str(args.lr))
+    model_path = 'model/{}{}_lambda={}_bs={}_lr={}/'.format(args.dataset,
+                                                            size,
+                                                            args.lamb,
+                                                            args.batch_size,
+                                                            str(args.lr))
+    # Create the folders
     if not os.path.exists(img_path):
         os.makedirs(img_path)
+
     if not os.path.exists(model_path):
         os.makedirs(model_path)
 
@@ -185,19 +196,17 @@ def main():
         plotter.draw(img_path + 'train_val.png')
 
         if args.save:
-            print('Saving check point')
+            print('Saving checkpoint')
             save_checkpoint({'epoch': epoch + 1,
                              'state_dict': model_G.state_dict(),
                              'optimizer': optimizer_G.state_dict(),
                              },
-                            filename=model_path + 'G_epoch%d.pth.tar' \
-                                                  % epoch)
+                            filename=os.path.join(model_path, 'G_epoch_{}.pth.tar'.format(epoch))
             save_checkpoint({'epoch': epoch + 1,
                              'state_dict': model_D.state_dict(),
                              'optimizer': optimizer_D.state_dict(),
                              },
-                            filename=model_path + 'D_epoch%d.pth.tar' \
-                                                  % epoch)
+                            filename=os.path.join(model_path, 'D_epoch_{}.pth.tar'.format(epoch))
 
 
 def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, iteration):
@@ -222,7 +231,8 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         ########################
         # update D network
         ########################
-        # train with real
+
+        # Train with real
         model_D.zero_grad()
         output = model_D(target)
         label = torch.FloatTensor(target.size(0)).fill_(real_label).cuda()
@@ -231,7 +241,7 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         errD_real.backward()
         D_x = output.data.mean()
 
-        # train with fake
+        # Train with fake
         fake = model_G(data)
         labelv = Variable(label.fill_(fake_label))
         output = model_D(fake.detach())
@@ -245,6 +255,7 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         ########################
         # update G network
         ########################
+
         model_G.zero_grad()
         labelv = Variable(label.fill_(real_label))
         output = model_D(fake)
@@ -256,13 +267,14 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         D_G_x2 = output.data.mean()
         optimizer_G.step()
 
-        # store error values
+        # TensorboardX
         writer.add_scalar('errG', errG.data[0], iteration)
         writer.add_scalar('errD', errD.data[0], iteration)
 
         writer.add_scalar('errD_real', errD_real.data[0], iteration)
         writer.add_scalar('errD_fake', errD_fake.data[0], iteration)
 
+        # store error values
         errorG.update(errG.data[0], target.size(0), history=1)
         errorD.update(errD.data[0], target.size(0), history=1)
 
@@ -280,17 +292,18 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
 
         if iteration % print_interval == 0:
             print(
-                'Epoch%d[%d/%d]: Loss_D: %.4f(R%0.4f+F%0.4f) Loss_G: %0.4f(GAN%.4f+R%0.4f) D(x): %.4f D(G(z)): %.4f / %.4f' \
-                % (epoch, i, len(train_loader),
-                   errorD_basic.avg, errorD_real.avg, errorD_fake.avg,
-                   errorG_basic.avg, errorG_GAN.avg, errorG_R.avg,
-                   D_x, D_G_x1, D_G_x2
-                   ))
-            # plot image
+                'Training epoch {}: [{}/{}]: '
+                'Loss_D: {:.4f}(R {:.4f} + F {:.4f})\tLoss_G: {.4f}(GAN {:.4f} + R {:0.4f})'
+                'D(x): {:.4f} D(G(z)): {:.4f} / {:.4f}'.format(epoch, i, len(train_loader),
+                                                               errorD_basic.avg, errorD_real.avg, errorD_fake.avg,
+                                                               errorG_basic.avg, errorG_GAN.avg, errorG_R.avg,
+                                                               D_x, D_G_x1, D_G_x2))
+            # Plot image
             plotter_basic.g_update(errorG_basic.avg)
             plotter_basic.d_update(errorD_basic.avg)
             plotter_basic.draw(img_path + 'train_basic.png')
-            # reset AverageMeter
+
+            # Reset AverageMeter
             errorG_basic.reset()
             errorD_basic.reset()
             errorD_real.reset()
@@ -349,17 +362,18 @@ def validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch):
             vis_result(data.data, target.data, fake.data, epoch)
 
         if i % 50 == 0:
-            print('Validating Epoch %d: [%d/%d]' \
-                  % (epoch, i, len(val_loader)))
+            print('Validating epoch {}: [{}/{}]'.format(epoch, i, len(val_loader)))
 
-    print('Validation: Loss_D: %.4f Loss_G: %.4f ' \
-          % (errorD.avg, errorG.avg))
+    print('Validation: Loss_D: {:.4f}\tLoss_G: {:.4f}'.format(errorD.avg, errorG.avg))
 
     return errorG.avg, errorD.avg
 
 
 def vis_result(data, target, output, epoch):
-    '''visualize images for GAN'''
+    """
+    Visualize images for GAN
+    """
+
     img_list = []
     for i in range(min(32, val_bs)):
         l = torch.unsqueeze(torch.squeeze(data[i]), 0).cpu().numpy()
@@ -386,3 +400,8 @@ def vis_result(data, target, output, epoch):
 
 if __name__ == '__main__':
     main()
+
+    # Export scalar data to JSON for external processing
+    writer.export_scalars_to_json("./all_scalars.json")
+    writer.close()
+    print('Closed the TensorboardX writer')
