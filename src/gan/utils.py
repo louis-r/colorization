@@ -5,6 +5,7 @@ import pickle
 
 import re
 import matplotlib.pyplot as plt
+
 plt.switch_backend('agg')
 
 
@@ -13,8 +14,10 @@ def save_checkpoint(state, is_best=0, filename='models/checkpoint.pth.tar'):
     if is_best:
         shutil.copyfile(filename, 'models/model_best.pth.tar')
 
+
 class AverageMeter(object):
     """Computes and stores the average and current value"""
+
     def __init__(self):
         self.reset()
 
@@ -24,8 +27,8 @@ class AverageMeter(object):
         self.sum = 0
         self.count = 0
         self.history = []
-        self.dict = {} # save all data values here
-        self.save_dict = {} # save mean and std here, for summary table
+        self.dict = {}  # save all data values here
+        self.save_dict = {}  # save mean and std here, for summary table
 
     def update(self, val, n=1, history=0):
         self.val = val
@@ -57,7 +60,7 @@ class AverageMeter(object):
                 self.save_dict[key] = [[avg_val, std_val]]
 
             print('Activity:%s, mean %s is %0.4f, std %s is %0.4f, length of data is %d' \
-                % (key, title, avg_val, title, std_val, len_val))
+                  % (key, title, avg_val, title, std_val, len_val))
 
             total.extend(val)
 
@@ -66,7 +69,7 @@ class AverageMeter(object):
         len_total = len(total)
         std_total = np.std(total)
         print('\nOverall: mean %s is %0.4f, std %s is %0.4f, length of data is %d \n' \
-            % (title, avg_total, title, std_total, len_total))
+              % (title, avg_total, title, std_total, len_total))
 
         if save_data:
             print('Save %s pickle file' % title)
@@ -75,6 +78,7 @@ class AverageMeter(object):
 
     def __len__(self):
         return self.count
+
 
 def print_table(obj_list, title_list, save_list):
     '''print_table([losses, iou_score, precision, recall, c_losses, c_accuracy])
@@ -87,13 +91,14 @@ def print_table(obj_list, title_list, save_list):
             pass
 
 
-
 def natural_key(string_):
     """See http://www.codinghorror.com/blog/archives/001018.html"""
     return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
 
+
 class Plotter(object):
     """plot loss and accuracy, require import matplotlib.pyplot as plt"""
+
     def __init__(self):
         self.train_loss = []
         self.train_acc = []
@@ -141,7 +146,7 @@ class Plotter(object):
             self.val_c_acc.append(c_acc)
 
     def export_valacc(self, filename):
-        pickle.dump(self.val_acc, open(filename+'.pickle', 'wb'))
+        pickle.dump(self.val_acc, open(filename + '.pickle', 'wb'))
 
     def draw(self, filename):
         if len(self.train_c_loss) == 0:
@@ -151,7 +156,7 @@ class Plotter(object):
                               ['loss', 'iou'])
                 plt.figure()
                 for i, (data, name) in enumerate(zipdata):
-                    plt.subplot(1, 2, i+1)
+                    plt.subplot(1, 2, i + 1)
                     plt.plot(data[0], label='train')
                     plt.plot(data[1], label='val')
                     plt.legend(loc='upper left')
@@ -160,12 +165,12 @@ class Plotter(object):
                 plt.tight_layout()
                 plt.savefig(filename)
                 plt.clf()
-            else: # no validation data
+            else:  # no validation data
                 zipdata = zip([self.train_loss, self.train_acc],
                               ['loss', 'iou'])
                 plt.figure()
                 for i, (data, name) in enumerate(zipdata):
-                    plt.subplot(1, 2, i+1)
+                    plt.subplot(1, 2, i + 1)
                     plt.plot(data, label='train')
                     plt.legend(loc='upper left')
                     plt.xlabel('iteration')
@@ -175,7 +180,7 @@ class Plotter(object):
                 plt.clf()
         else:
             if (len(self.val_loss) == len(self.train_loss)) \
-                and (len(self.val_c_loss) == len(self.train_c_loss)): # train val
+                    and (len(self.val_c_loss) == len(self.train_c_loss)):  # train val
                 zipdata = zip([[self.train_loss, self.val_loss],
                                [self.train_acc, self.val_acc],
                                [self.train_c_loss, self.val_c_loss],
@@ -186,7 +191,7 @@ class Plotter(object):
                                'classification accuracy'])
                 plt.figure()
                 for i, (data, name) in enumerate(zipdata):
-                    plt.subplot(2,2,i+1)
+                    plt.subplot(2, 2, i + 1)
                     plt.plot(data[0], label='train')
                     plt.plot(data[1], label='val')
                     plt.legend(loc='upper left')
@@ -196,7 +201,7 @@ class Plotter(object):
                 plt.savefig(filename)
                 plt.clf()
             elif (len(self.val_loss) != len(self.train_loss)) \
-                and (len(self.val_c_loss) != len(self.train_c_loss)): # No val
+                    and (len(self.val_c_loss) != len(self.train_c_loss)):  # No val
                 zipdata = zip([self.train_loss,
                                self.train_acc,
                                self.train_c_loss,
@@ -207,7 +212,7 @@ class Plotter(object):
                                'classification accuracy'])
                 plt.figure()
                 for i, (data, name) in enumerate(zipdata):
-                    plt.subplot(2,2,i+1)
+                    plt.subplot(2, 2, i + 1)
                     plt.plot(data, label='train')
                     plt.legend(loc='upper left')
                     plt.xlabel('iteration')
@@ -221,6 +226,7 @@ class Plotter(object):
 
 class Plotter_Single(object):
     """plot loss and accuracy, require import matplotlib.pyplot as plt"""
+
     def __init__(self):
         self.train_loss = []
         self.val_loss = []
@@ -249,7 +255,7 @@ class Plotter_Single(object):
             plt.savefig(filename)
             plt.clf()
 
-        else: # no validation data
+        else:  # no validation data
             plt.figure()
             plt.plot(self.train_loss, label='train')
             plt.legend(loc='upper left')
@@ -263,6 +269,7 @@ class Plotter_Single(object):
 
 class Plotter_GAN(object):
     """plot loss for G and D, require import matplotlib.pyplot as plt"""
+
     def __init__(self):
         self.g_loss = []
         self.d_loss = []
@@ -295,6 +302,7 @@ class Plotter_GAN(object):
 
 class Plotter_GAN_TV(object):
     """plot loss for G and D with Training and Validation, require import matplotlib.pyplot as plt"""
+
     def __init__(self):
         self.g_loss_t = []
         self.d_loss_t = []
@@ -319,9 +327,9 @@ class Plotter_GAN_TV(object):
 
     def draw(self, filename):
         name = 'loss'
-        if len(self.g_loss_t) == len(self.d_loss_t) and\
-           len(self.g_loss_v) == len(self.d_loss_v) and\
-           len(self.g_loss_t) == len(self.g_loss_v):
+        if len(self.g_loss_t) == len(self.d_loss_t) and \
+                        len(self.g_loss_v) == len(self.d_loss_v) and \
+                        len(self.g_loss_t) == len(self.g_loss_v):
             plt.figure()
             plt.plot(self.g_loss_t, label='G_train')
             plt.plot(self.d_loss_t, label='D_train')
@@ -339,6 +347,7 @@ class Plotter_GAN_TV(object):
 
 class AccuracyTable(object):
     """compute accuracy for each class"""
+
     def __init__(self):
         self.dict = {}
 
@@ -349,7 +358,7 @@ class AccuracyTable(object):
             i = int(i)
             j = int(j)
             if j not in self.dict.keys():
-                self.dict[j] = {'count':0,'correct':0}
+                self.dict[j] = {'count': 0, 'correct': 0}
             self.dict[j]['count'] += 1
             if i == j:
                 self.dict[j]['correct'] += 1
@@ -358,7 +367,7 @@ class AccuracyTable(object):
         for key in self.dict.keys():
             acc = self.dict[key]['correct'] / self.dict[key]['count']
             print('%s: %2d, accuracy: %3d/%3d = %0.6f' \
-                % (label, key, self.dict[key]['correct'], self.dict[key]['count'], acc))
+                  % (label, key, self.dict[key]['correct'], self.dict[key]['count'], acc))
 
 
 # class AverageMeter(object):
@@ -388,7 +397,7 @@ class ConfusionMeter(object):
     def update(self, pred, tar):
         pred = torch.squeeze(pred)
         tar = torch.squeeze(tar)
-        for p,t in zip(pred, tar):
+        for p, t in zip(pred, tar):
             self.mat[p][t] += 1
 
     def print_mat(self):
@@ -397,13 +406,13 @@ class ConfusionMeter(object):
 
     def plot_mat(self, path):
         plt.imshow(self.mat,
-            cmap=plt.cm.jet,
-            interpolation='nearest',
-            extent=(0.5, np.shape(self.mat)[0]+0.5, np.shape(self.mat)[1]+0.5, 0.5))
+                   cmap=plt.cm.jet,
+                   interpolation='nearest',
+                   extent=(0.5, np.shape(self.mat)[0] + 0.5, np.shape(self.mat)[1] + 0.5, 0.5))
         width, height = self.mat.shape
         for x in range(width):
             for y in range(height):
-                plt.annotate(str(int(self.mat[x][y])), xy=(y+1, x+1),
+                plt.annotate(str(int(self.mat[x][y])), xy=(y + 1, x + 1),
                              horizontalalignment='center',
                              verticalalignment='center')
         plt.colorbar()
@@ -411,9 +420,9 @@ class ConfusionMeter(object):
         plt.clf()
 
         for i in range(width):
-            if np.sum(self.mat[i,:]) != 0:
-                self.precision.append(self.mat[i,i] / np.sum(self.mat[i,:]))
-            if np.sum(self.mat[:,i]) != 0:
-                self.recall.append(self.mat[i,i] / np.sum(self.mat[:,i]))
+            if np.sum(self.mat[i, :]) != 0:
+                self.precision.append(self.mat[i, i] / np.sum(self.mat[i, :]))
+            if np.sum(self.mat[:, i]) != 0:
+                self.recall.append(self.mat[i, i] / np.sum(self.mat[:, i]))
         print('Average Precision: %0.4f' % np.mean(self.precision))
         print('Average Recall: %0.4f' % np.mean(self.recall))

@@ -43,6 +43,7 @@ class ToLabel_32(object):
         tensor = torch.from_numpy(np.array(inputs)).long()
         return tensor
 
+
 class ToLabel(object):
     def __call__(self, inputs):
         tensors = []
@@ -65,11 +66,11 @@ class ReLabel(object):
 
 class ToSP(object):
     def __init__(self, size):
-        self.scale2 = Scale(size/2, Image.NEAREST)
-        self.scale4 = Scale(size/4, Image.NEAREST)
-        self.scale8 = Scale(size/8, Image.NEAREST)
-        self.scale16 = Scale(size/16, Image.NEAREST)
-        self.scale32 = Scale(size/32, Image.NEAREST)
+        self.scale2 = Scale(size / 2, Image.NEAREST)
+        self.scale4 = Scale(size / 4, Image.NEAREST)
+        self.scale8 = Scale(size / 8, Image.NEAREST)
+        self.scale16 = Scale(size / 16, Image.NEAREST)
+        self.scale32 = Scale(size / 32, Image.NEAREST)
 
     def __call__(self, input):
         input2 = self.scale2(input)
@@ -94,9 +95,11 @@ class VerticalFlip(object):
     def __call__(self, img):
         return img.transpose(Image.FLIP_TOP_BOTTOM)
 
+
 def uint82bin(n, count=8):
     """returns the binary of integer n, count refers to amount of bits"""
-    return ''.join([str((n >> y) & 1) for y in range(count-1, -1, -1)])
+    return ''.join([str((n >> y) & 1) for y in range(count - 1, -1, -1)])
+
 
 def labelcolormap(N):
     cmap = np.zeros((N, 3), dtype=np.uint8)
@@ -107,14 +110,15 @@ def labelcolormap(N):
         id = i
         for j in range(7):
             str_id = uint82bin(id)
-            r = r ^ (np.uint8(str_id[-1]) << (7-j))
-            g = g ^ (np.uint8(str_id[-2]) << (7-j))
-            b = b ^ (np.uint8(str_id[-3]) << (7-j))
+            r = r ^ (np.uint8(str_id[-1]) << (7 - j))
+            g = g ^ (np.uint8(str_id[-2]) << (7 - j))
+            b = b ^ (np.uint8(str_id[-3]) << (7 - j))
             id = id >> 3
         cmap[i, 0] = r
         cmap[i, 1] = g
         cmap[i, 2] = b
     return cmap
+
 
 def colormap(n):
     cmap = np.zeros([n, 3]).astype(np.uint8)
@@ -123,9 +127,9 @@ def colormap(n):
         r, g, b = np.zeros(3)
 
         for j in np.arange(8):
-            r = r + (1 << (7-j))*((i & (1 << (3*j))) >> (3*j))
-            g = g + (1 << (7-j))*((i & (1 << (3*j+1))) >> (3*j+1))
-            b = b + (1 << (7-j))*((i & (1 << (3*j+2))) >> (3*j+2))
+            r = r + (1 << (7 - j)) * ((i & (1 << (3 * j))) >> (3 * j))
+            g = g + (1 << (7 - j)) * ((i & (1 << (3 * j + 1))) >> (3 * j + 1))
+            b = b + (1 << (7 - j)) * ((i & (1 << (3 * j + 2))) >> (3 * j + 2))
 
         cmap[i, :] = np.array([r, g, b])
 
