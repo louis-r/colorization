@@ -59,8 +59,8 @@ def main():
                                                                         args.batch_size,
                                                                         str(args.lr),
                                                                         str(args.weight_decay),
-                                                                        args.num_epoch
-                                                                        )
+                                                                        args.num_epoch)
+    print('Now training {}'.format(model_name))
     # date = '1220'
     writer = SummaryWriter(log_dir='runs/{}'.format(model_name))
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
@@ -196,6 +196,7 @@ def main():
                                       global_step=global_step)
 
         # TensorboardX
+        print('global_step = {}'.format(global_step))
         writer.add_scalar('val/val_errG', val_errG, global_step)
         writer.add_scalar('val/val_errD', val_errD, global_step)
 
