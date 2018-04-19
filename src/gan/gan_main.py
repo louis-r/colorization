@@ -1,21 +1,15 @@
-# from transform import ReLabel, ToLabel, ToSP, Scale
-from gan_model import *
-from utils import *
+from gan_model import ConvGen, ConvDis
+from utils import AverageMeter, save_checkpoint, Plotter_GAN_TV, Plotter_GAN
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils import data
-import torch.nn.functional as F
-import torchvision
-from torchvision import datasets, models, transforms
-from skimage import color
+from torchvision import transforms
+import torchvision.utils as vutils
 
-import time
 import os
-import sys
-from PIL import Image
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
@@ -45,8 +39,8 @@ parser.add_argument('--model_G', default='', type=str,
                     help='Path to resume for Generator model')
 parser.add_argument('--model_D', default='', type=str,
                     help='Path to resume for Discriminator model')
-# parser.add_argument('-p', '--plot', action="store_true",
-#                     help='Plot accuracy and loss diagram?')
+parser.add_argument('-p', '--plot', action="store_true",
+                    help='Plot accuracy and loss diagram?')
 parser.add_argument('-s', '--save', action="store_true",
                     help='Save model?')
 parser.add_argument('--gpu', default=0, type=int,
@@ -54,10 +48,21 @@ parser.add_argument('--gpu', default=0, type=int,
 
 
 def main():
-    global args, date, writer
+    global args, writer
     args = parser.parse_args()
+    size = ''
+    if args.large:
+        size = '_large'
+    model_name = '{}{}_lambda={}_bs={}_lr={}_wd={}_n_epochs={}/'.format(args.dataset,
+                                                                        size,
+                                                                        args.lamb,
+                                                                        args.batch_size,
+                                                                        str(args.lr),
+                                                                        str(args.weight_decay),
+                                                                        args.num_epoch
+                                                                        )
     # date = '1220'
-    writer = SummaryWriter()
+    writer = SummaryWriter(log_dir='runs/{}'.format(model_name))
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
 
     model_G = ConvGen()
@@ -76,6 +81,7 @@ def main():
         checkpoint_D = torch.load(args.model_D)
         model_D.load_state_dict(checkpoint_D['state_dict'])
         start_epoch_D = checkpoint_D['epoch']
+
     # Check
     assert start_epoch_G == start_epoch_D
 
@@ -158,19 +164,10 @@ def main():
     plotter_basic = Plotter_GAN()
 
     global img_path
-    size = ''
-    if args.large:
-        size = '_large'
-    img_path = 'img/{}{}_lambda={}_bs={}_lr={}/'.format(args.dataset,
-                                                        size,
-                                                        args.lamb,
-                                                        args.batch_size,
-                                                        str(args.lr))
-    model_path = 'model/{}{}_lambda={}_bs={}_lr={}/'.format(args.dataset,
-                                                            size,
-                                                            args.lamb,
-                                                            args.batch_size,
-                                                            str(args.lr))
+
+    img_path = 'img/{}/'.format(model_name)
+    model_path = 'model/{}/'.format(model_name)
+
     # Create the folders
     if not os.path.exists(img_path):
         os.makedirs(img_path)
@@ -180,23 +177,34 @@ def main():
 
     # start loop
     start_epoch = 0
-
+    global_step = 0
     for epoch in range(start_epoch, args.num_epoch):
         print('Epoch {}/{}'.format(epoch, args.num_epoch - 1))
         print('-' * 20)
         if epoch == 0:
-            val_lerrG, val_errD = validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch=-1)
+            val_errG, val_errD = validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch=-1,
+                                          global_step=global_step)
+            # TensorboardX
+            writer.add_scalar('val/val_errG', val_errG, global_step)
+            writer.add_scalar('val/val_errD', val_errD, global_step)
+
         # train
-        train_errG, train_errD = train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, iteration)
+        train_errG, train_errD, global_step = train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch,
+                                                    iteration)
         # validate
-        val_lerrG, val_errD = validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch)
+        val_errG, val_errD = validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch,
+                                      global_step=global_step)
+
+        # TensorboardX
+        writer.add_scalar('val/val_errG', val_errG, global_step)
+        writer.add_scalar('val/val_errD', val_errD, global_step)
 
         plotter.train_update(train_errG, train_errD)
-        plotter.val_update(val_lerrG, val_errD)
+        plotter.val_update(val_errG, val_errD)
         plotter.draw(img_path + 'train_val.png')
 
         if args.save:
-            print('Saving checkpoint')
+            print('Saving checkpoint.')
             save_checkpoint({'epoch': epoch + 1,
                              'state_dict': model_G.state_dict(),
                              'optimizer': optimizer_G.state_dict(),
@@ -210,6 +218,7 @@ def main():
 
 
 def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, iteration):
+    # Change the value of global variable global_step (to match in validate)
     errorG = AverageMeter()  # will be reset after each epoch
     errorD = AverageMeter()  # will be reset after each epoch
     errorG_basic = AverageMeter()  # basic will be reset after each print
@@ -268,11 +277,12 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         optimizer_G.step()
 
         # TensorboardX
-        writer.add_scalar('errG', errG.data[0], iteration)
-        writer.add_scalar('errD', errD.data[0], iteration)
+        global_step = iteration + len(train_loader) * epoch
+        writer.add_scalar('train/errG', errG.data[0], global_step)
+        writer.add_scalar('train/errD', errD.data[0], global_step)
 
-        writer.add_scalar('errD_real', errD_real.data[0], iteration)
-        writer.add_scalar('errD_fake', errD_fake.data[0], iteration)
+        writer.add_scalar('train/errD_real', errD_real.data[0], global_step)
+        writer.add_scalar('train/errD_fake', errD_fake.data[0], global_step)
 
         # store error values
         errorG.update(errG.data[0], target.size(0), history=1)
@@ -293,8 +303,9 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         if iteration % print_interval == 0:
             print(
                 'Training epoch {}: [{}/{}]: '
-                'Loss_D: {:.4f}(R {:.4f} + F {:.4f})\tLoss_G: {:.4f}(GAN {:.4f} + R {:0.4f})'
-                'D(x): {:.4f} D(G(z)): {:.4f} / {:.4f}'.format(epoch, i, len(train_loader),
+                'Loss_D: {:.2f} (R {:.2f} + F {:.2f}) | '
+                'Loss_G: {:.2f} (GAN {:.2f} + R {:.2f}) '
+                'D(x): {:.2f} D(G(z)): {:.2f} / {:.2f}'.format(epoch, i, len(train_loader),
                                                                errorD_basic.avg, errorD_real.avg, errorD_fake.avg,
                                                                errorG_basic.avg, errorG_GAN.avg, errorG_R.avg,
                                                                D_x, D_G_x1, D_G_x2))
@@ -313,10 +324,10 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
 
         iteration += 1
 
-    return errorG.avg, errorD.avg
+    return errorG.avg, errorD.avg, global_step
 
 
-def validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch):
+def validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, global_step):
     errorG = AverageMeter()
     errorD = AverageMeter()
 
@@ -355,24 +366,49 @@ def validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch):
 
         errG = errG_GAN + args.lamb * errG_L1
 
+        # TensorboardX
+        # writer.add_scalar('val/errG', errG.data[0], global_step)
+        # writer.add_scalar('val/errD', errD.data[0], global_step)
+
         errorG.update(errG.data[0], target.size(0), history=1)
         errorD.update(errD.data[0], target.size(0), history=1)
 
         if i == 0:
-            vis_result(data.data, target.data, fake.data, epoch)
+            vis_result(data.data, target.data, fake.data, epoch, global_step)
 
         if i % 50 == 0:
             print('Validating epoch {}: [{}/{}]'.format(epoch, i, len(val_loader)))
 
-    print('Validation: Loss_D: {:.4f}\tLoss_G: {:.4f}'.format(errorD.avg, errorG.avg))
+    print('Validation epoch {}: Loss_D: {:.2f} | Loss_G: {:.2f}'.format(epoch, errorD.avg, errorG.avg))
 
     return errorG.avg, errorD.avg
 
 
-def vis_result(data, target, output, epoch):
+def vis_result(data, target, output, epoch, global_step):
     """
     Visualize images for GAN
     """
+    # TensorboardX
+    n_images = 4  # How many images to display in TensorBoard
+
+    if global_step == 0:  # First iteration, only save once
+        x = vutils.make_grid(data[:n_images, :, :, :],
+                             nrow=2,
+                             normalize=True,
+                             scale_each=True)
+        writer.add_image('val/data', x, global_step)
+
+        x = vutils.make_grid(target[:n_images, :, :, :],
+                             nrow=2,
+                             normalize=True,
+                             scale_each=True)
+        writer.add_image('val/target', x, global_step)
+
+    x = vutils.make_grid(output[:n_images, :, :, :],
+                         nrow=2,
+                         normalize=True,
+                         scale_each=True)
+    writer.add_image('val/fake', x, global_step)
 
     img_list = []
     for i in range(min(32, val_bs)):
@@ -385,6 +421,11 @@ def vis_result(data, target, output, epoch):
 
         grey = np.transpose(l, (1, 2, 0))
         grey = np.repeat(grey, 3, axis=2).astype(np.float64)
+
+        # writer.add_image('val/grey_{}'.format(i), grey, global_step)
+        # writer.add_image('val/raw_rg_{}'.format(i), raw_rgb, global_step)
+        # writer.add_image('val/pred_rg_{}'.format(i), pred_rgb, global_step)
+
         img_list.append(np.concatenate((grey, raw_rgb, pred_rgb), 1))
 
     img_list = [np.concatenate(img_list[4 * i:4 * (i + 1)], axis=1) for i in range(len(img_list) // 4)]
