@@ -201,12 +201,12 @@ def main():
                              'state_dict': model_G.state_dict(),
                              'optimizer': optimizer_G.state_dict(),
                              },
-                            filename=os.path.join(model_path, 'G_epoch_{}.pth.tar'.format(epoch))
+                            filename=os.path.join(model_path, 'G_epoch_{}.pth.tar'.format(epoch)))
             save_checkpoint({'epoch': epoch + 1,
                              'state_dict': model_D.state_dict(),
                              'optimizer': optimizer_D.state_dict(),
                              },
-                            filename=os.path.join(model_path, 'D_epoch_{}.pth.tar'.format(epoch))
+                            filename=os.path.join(model_path, 'D_epoch_{}.pth.tar'.format(epoch)))
 
 
 def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, iteration):
@@ -293,7 +293,7 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         if iteration % print_interval == 0:
             print(
                 'Training epoch {}: [{}/{}]: '
-                'Loss_D: {:.4f}(R {:.4f} + F {:.4f})\tLoss_G: {.4f}(GAN {:.4f} + R {:0.4f})'
+                'Loss_D: {:.4f}(R {:.4f} + F {:.4f})\tLoss_G: {:.4f}(GAN {:.4f} + R {:0.4f})'
                 'D(x): {:.4f} D(G(z)): {:.4f} / {:.4f}'.format(epoch, i, len(train_loader),
                                                                errorD_basic.avg, errorD_real.avg, errorD_fake.avg,
                                                                errorG_basic.avg, errorG_GAN.avg, errorG_R.avg,
