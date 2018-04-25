@@ -17,22 +17,10 @@ import matplotlib.pyplot as plt
 from tensorboardX import SummaryWriter
 
 parser = argparse.ArgumentParser(description='Colorization using GAN')
-# Paths/Saving/Reload
 parser.add_argument('path', type=str,
                     help='Root path for dataset')
-parser.add_argument('--test', default='', type=str,
-                    help='Path to the model, for testing')
-parser.add_argument('--model_G', default='', type=str,
-                    help='Path to resume for Generator model')
-parser.add_argument('--model_D', default='', type=str,
-                    help='Path to resume for Discriminator model')
-parser.add_argument('-s', '--save', action="store_true",
-                    help='Save model?')
 parser.add_argument('--dataset', type=str,
                     help='which dataset?', choices=['sc2', 'flower', 'bob'])
-parser.add_argument('-p', '--plot', action="store_true",
-                    help='Plot accuracy and loss diagram?')
-# Hyperparameters
 parser.add_argument('--large', action="store_true",
                     help='Use larger images?')
 parser.add_argument('--batch_size', default=4, type=int,
@@ -45,17 +33,23 @@ parser.add_argument('--num_epoch', default=20, type=int,
                     help='Number of epochs')
 parser.add_argument('--lamb', default=100, type=int,
                     help='Lambda for L1 Loss')
-# Hardware
-parser.add_argument('-c', '--use_cuda', action='store_true',
-                    help='Use cuda for training')
+parser.add_argument('--test', default='', type=str,
+                    help='Path to the model, for testing')
+parser.add_argument('--model_G', default='', type=str,
+                    help='Path to resume for Generator model')
+parser.add_argument('--model_D', default='', type=str,
+                    help='Path to resume for Discriminator model')
+parser.add_argument('-p', '--plot', action="store_true",
+                    help='Plot accuracy and loss diagram?')
+parser.add_argument('-s', '--save', action="store_true",
+                    help='Save model?')
 parser.add_argument('--gpu', default=0, type=int,
                     help='Which GPU to use?')
 
 
 def main():
-    global args, device, writer, criterion, L1, val_batch_size, img_path, model_path
+    global args, writer
     args = parser.parse_args()
-    device = torch.device('cuda' if args.use_cuda else 'cpu')
     size = ''
     if args.large:
         size = '_large'
@@ -94,10 +88,8 @@ def main():
     if args.model_G == '' and args.model_D == '':
         print('Not resume training.')
 
-    # model_G.cuda()
-    # model_D.cuda()
-    model_G.to(device)
-    model_D.to(device)
+    model_G.cuda()
+    model_D.cuda()
 
     # optimizer
     optimizer_G = optim.Adam(model_G.parameters(),
@@ -111,8 +103,10 @@ def main():
     if args.model_D:
         optimizer_D.load_state_dict(checkpoint_D['optimizer'])
 
-    # Define loss functions
+    # loss function
+    global criterion
     criterion = nn.BCELoss()
+    global L1
     L1 = nn.L1Loss()
 
     # dataset
@@ -159,8 +153,8 @@ def main():
                                  shuffle=False,
                                  num_workers=4)
 
-    # Define validation batch size
-    val_batch_size = val_loader.batch_size
+    global val_bs
+    val_bs = val_loader.batch_size
 
     # set up plotter, path, etc.
     global iteration, print_interval, plotter, plotter_basic
@@ -169,7 +163,8 @@ def main():
     plotter = Plotter_GAN_TV()
     plotter_basic = Plotter_GAN()
 
-    # Define paths
+    global img_path
+
     img_path = 'img/{}/'.format(model_name)
     model_path = 'model/{}/'.format(model_name)
 
@@ -183,7 +178,6 @@ def main():
     # start loop
     start_epoch = 0
     global_step = 0
-
     for epoch in range(start_epoch, args.num_epoch):
         print('Epoch {}/{}'.format(epoch, args.num_epoch - 1))
         print('-' * 20)
@@ -242,7 +236,7 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
     fake_label = 0
 
     for i, (data, target) in enumerate(train_loader):
-        data, target = data.to(device), target.to(device)
+        data, target = Variable(data.cuda()), Variable(target.cuda())
 
         ########################
         # update D network
@@ -251,7 +245,7 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         # Train with real
         model_D.zero_grad()
         output = model_D(target)
-        label = torch.FloatTensor(target.size(0)).fill_(real_label).to(device)
+        label = torch.FloatTensor(target.size(0)).fill_(real_label).cuda()
         labelv = Variable(label)
         errD_real = criterion(torch.squeeze(output), labelv)
         errD_real.backward()
@@ -345,13 +339,13 @@ def validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, glob
     fake_label = 0
 
     for i, (data, target) in enumerate(val_loader):
-        data, target = data.to(device), target.to(device)
+        data, target = Variable(data.cuda()), Variable(target.cuda())
         ########################
         # D network
         ########################
         # validate with real
         output = model_D(target)
-        label = torch.FloatTensor(target.size(0)).fill_(real_label).to(device)
+        label = torch.FloatTensor(target.size(0)).fill_(real_label).cuda()
         labelv = Variable(label)
         errD_real = criterion(torch.squeeze(output), labelv)
 
@@ -403,28 +397,22 @@ def vis_result(data, target, output, epoch, global_step):
                              nrow=2,
                              normalize=True,
                              scale_each=True)
-        writer.add_image('val/data',
-                         x.view(454, 454, 3).numpy(),  # Cast to numpy since tensorboardX does not support Pytorch 0.4
-                         global_step)
+        writer.add_image('val/data', x, global_step)
 
         x = vutils.make_grid(target[:n_images, :, :, :],
                              nrow=2,
                              normalize=True,
                              scale_each=True)
-        writer.add_image('val/target',
-                         x.view(454, 454, 3).numpy(),  # Cast to numpy since tensorboardX does not support Pytorch 0.4
-                         global_step)
+        writer.add_image('val/target', x, global_step)
 
     x = vutils.make_grid(output[:n_images, :, :, :],
                          nrow=2,
                          normalize=True,
                          scale_each=True)
-    writer.add_image('val/fake',
-                     x.view(454, 454, 3).numpy(),  # Cast to numpy since tensorboardX does not support Pytorch 0.4
-                     global_step)
+    writer.add_image('val/fake', x, global_step)
 
     img_list = []
-    for i in range(min(32, val_batch_size)):
+    for i in range(min(32, val_bs)):
         l = torch.unsqueeze(torch.squeeze(data[i]), 0).cpu().numpy()
         raw = target[i].cpu().numpy()
         pred = output[i].cpu().numpy()
@@ -453,8 +441,8 @@ def vis_result(data, target, output, epoch, global_step):
 
 
 if __name__ == '__main__':
-    # torch.device object used throughout this script
     main()
+
     # Export scalar data to JSON for external processing
     writer.export_scalars_to_json("./all_scalars.json")
     writer.close()
