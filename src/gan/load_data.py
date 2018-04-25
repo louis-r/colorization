@@ -122,7 +122,7 @@ class lfw_Dataset(data.Dataset):
         return len(self.path)
 
 
-class Flower_Dataset(data.Dataset):
+class FlowerDataset(data.Dataset):
     def __init__(self, root,
                  shuffle=False,
                  small=False,
@@ -211,7 +211,7 @@ class Flower_Dataset(data.Dataset):
         return len(self.path)
 
 
-class Spongebob_Dataset(data.Dataset):
+class BobDataset(data.Dataset):
     def __init__(self, root,
                  shuffle=False,
                  small=False,
@@ -320,7 +320,7 @@ class Spongebob_Dataset(data.Dataset):
         return len(self.path)
 
 
-class SC2_Dataset(data.Dataset):
+class SC2Dataset(data.Dataset):
     def __init__(self, root,
                  shuffle=False,
                  small=False,
@@ -440,8 +440,8 @@ if __name__ == '__main__':
         transforms.ToTensor(),
     ])
 
-    lfw = SC2_Dataset(data_root, mode='train',
-                      transform=image_transform, large=True, types='raw')
+    lfw = SC2Dataset(data_root, mode='train',
+                     transform=image_transform, large=True, types='raw')
 
     data_loader = data.DataLoader(lfw,
                                   batch_size=1,
