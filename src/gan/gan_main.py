@@ -17,10 +17,22 @@ import matplotlib.pyplot as plt
 from tensorboardX import SummaryWriter
 
 parser = argparse.ArgumentParser(description='Colorization using GAN')
+# Paths/Saving/Reload
 parser.add_argument('path', type=str,
                     help='Root path for dataset')
+parser.add_argument('--test', default='', type=str,
+                    help='Path to the model, for testing')
+parser.add_argument('--model_G', default='', type=str,
+                    help='Path to resume for Generator model')
+parser.add_argument('--model_D', default='', type=str,
+                    help='Path to resume for Discriminator model')
+parser.add_argument('-s', '--save', action="store_true",
+                    help='Save model?')
 parser.add_argument('--dataset', type=str,
                     help='which dataset?', choices=['sc2', 'flower', 'bob'])
+parser.add_argument('-p', '--plot', action="store_true",
+                    help='Plot accuracy and loss diagram?')
+# Hyperparameters
 parser.add_argument('--large', action="store_true",
                     help='Use larger images?')
 parser.add_argument('--batch_size', default=4, type=int,
@@ -33,22 +45,16 @@ parser.add_argument('--num_epoch', default=20, type=int,
                     help='Number of epochs')
 parser.add_argument('--lamb', default=100, type=int,
                     help='Lambda for L1 Loss')
-parser.add_argument('--test', default='', type=str,
-                    help='Path to the model, for testing')
-parser.add_argument('--model_G', default='', type=str,
-                    help='Path to resume for Generator model')
-parser.add_argument('--model_D', default='', type=str,
-                    help='Path to resume for Discriminator model')
-parser.add_argument('-p', '--plot', action="store_true",
-                    help='Plot accuracy and loss diagram?')
-parser.add_argument('-s', '--save', action="store_true",
-                    help='Save model?')
+# Hardware
+parser.add_argument('-c', '--use_cuda', action='store_true',
+                    help='Use cuda for training')
 parser.add_argument('--gpu', default=0, type=int,
                     help='Which GPU to use?')
 
 
 def main():
-    global args, writer
+    global args, writer, criterion, L1, val_batch_size, img_path, model_path
+
     args = parser.parse_args()
     size = ''
     if args.large:
@@ -61,7 +67,6 @@ def main():
                                                                         str(args.weight_decay),
                                                                         args.num_epoch)
     print('Now training {}'.format(model_name))
-    # date = '1220'
     writer = SummaryWriter(log_dir='runs/{}'.format(model_name))
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
 
@@ -88,10 +93,11 @@ def main():
     if args.model_G == '' and args.model_D == '':
         print('Not resume training.')
 
-    model_G.cuda()
-    model_D.cuda()
+    if args.use_cuda:
+        model_G.cuda()
+        model_D.cuda()
 
-    # optimizer
+    # Define optimizer
     optimizer_G = optim.Adam(model_G.parameters(),
                              lr=args.lr, betas=(0.5, 0.999),
                              eps=1e-8, weight_decay=args.weight_decay)
@@ -103,14 +109,11 @@ def main():
     if args.model_D:
         optimizer_D.load_state_dict(checkpoint_D['optimizer'])
 
-    # loss function
-    global criterion
+    # Define loss function
     criterion = nn.BCELoss()
-    global L1
     L1 = nn.L1Loss()
 
-    # dataset
-    # data_root = '/home/users/u5612799/DATA/Spongebob/'
+    # Define dataset
     data_root = args.path
     dataset = args.dataset
     if dataset == 'sc2':
@@ -153,8 +156,7 @@ def main():
                                  shuffle=False,
                                  num_workers=4)
 
-    global val_bs
-    val_bs = val_loader.batch_size
+    val_batch_size = val_loader.batch_size
 
     # set up plotter, path, etc.
     global iteration, print_interval, plotter, plotter_basic
@@ -163,8 +165,7 @@ def main():
     plotter = Plotter_GAN_TV()
     plotter_basic = Plotter_GAN()
 
-    global img_path
-
+    # Define paths
     img_path = 'img/{}/'.format(model_name)
     model_path = 'model/{}/'.format(model_name)
 
@@ -236,8 +237,9 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
     fake_label = 0
 
     for i, (data, target) in enumerate(train_loader):
-        data, target = Variable(data.cuda()), Variable(target.cuda())
-
+        data, target = Variable(data), Variable(target)
+        if args.use_cuda:
+            data, target = data.cuda(), target.cuda()
         ########################
         # update D network
         ########################
@@ -245,7 +247,10 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         # Train with real
         model_D.zero_grad()
         output = model_D(target)
-        label = torch.FloatTensor(target.size(0)).fill_(real_label).cuda()
+        label = torch.FloatTensor(target.size(0)).fill_(real_label)
+        if args.use_cuda:
+            label = label.cuda()
+
         labelv = Variable(label)
         errD_real = criterion(torch.squeeze(output), labelv)
         errD_real.backward()
@@ -339,13 +344,19 @@ def validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, glob
     fake_label = 0
 
     for i, (data, target) in enumerate(val_loader):
-        data, target = Variable(data.cuda()), Variable(target.cuda())
+        data, target = Variable(data), Variable(target)
+        if args.use_cuda:
+            data, target = data.cuda(), target.cuda()
+
         ########################
         # D network
         ########################
         # validate with real
         output = model_D(target)
-        label = torch.FloatTensor(target.size(0)).fill_(real_label).cuda()
+        label = torch.FloatTensor(target.size(0)).fill_(real_label)
+        if args.use_cuda:
+            label = label.cuda()
+
         labelv = Variable(label)
         errD_real = criterion(torch.squeeze(output), labelv)
 
@@ -412,7 +423,7 @@ def vis_result(data, target, output, epoch, global_step):
     writer.add_image('val/fake', x, global_step)
 
     img_list = []
-    for i in range(min(32, val_bs)):
+    for i in range(min(32, val_batch_size)):
         l = torch.unsqueeze(torch.squeeze(data[i]), 0).cpu().numpy()
         raw = target[i].cpu().numpy()
         pred = output[i].cpu().numpy()
