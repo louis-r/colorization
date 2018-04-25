@@ -16,7 +16,9 @@ def save_checkpoint(state, is_best=0, filename='models/checkpoint.pth.tar'):
 
 
 class AverageMeter(object):
-    """Computes and stores the average and current value"""
+    """
+    Computes and stores the average and current value
+    """
 
     def __init__(self):
         self.reset()
@@ -46,7 +48,9 @@ class AverageMeter(object):
             self.dict[key] = [val]
 
     def print_dict(self, title='IoU', save_data=False):
-        """Print summary, clear self.dict and save mean+std in self.save_dict"""
+        """
+        Print summary, clear self.dict and save mean+std in self.save_dict
+        """
         total = []
         for key in self.dict.keys():
             val = self.dict[key]
