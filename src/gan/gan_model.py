@@ -5,7 +5,10 @@ import torch.nn.functional as F
 
 
 class ConvGen(nn.Module):
-    '''Generator'''
+    """
+    Generator
+    """
+
     def __init__(self):
         super(ConvGen, self).__init__()
 
@@ -55,50 +58,50 @@ class ConvGen(nn.Module):
         h = x
         h = self.conv1(h)
         h = self.bn1(h)
-        h = self.relu1(h) # 64,112,112 (if input is 224x224)
+        h = self.relu1(h)  # 64,112,112 (if input is 224x224)
         pool1 = h
 
         h = self.conv2(h)
         h = self.bn2(h)
-        h = self.relu2(h) # 128,56,56
+        h = self.relu2(h)  # 128,56,56
         pool2 = h
 
-        h = self.conv3(h) # 256,28,28
+        h = self.conv3(h)  # 256,28,28
         h = self.bn3(h)
         h = self.relu3(h)
-        pool3 =h
+        pool3 = h
 
-        h = self.conv4(h) # 512,14,14
+        h = self.conv4(h)  # 512,14,14
         h = self.bn4(h)
         h = self.relu4(h)
         pool4 = h
 
-        h = self.conv5(h) # 512,7,7
+        h = self.conv5(h)  # 512,7,7
         h = self.bn5(h)
         h = self.relu5(h)
 
         h = self.deconv6(h)
         h = self.bn6(h)
-        h = self.relu6(h) # 512,14,14
+        h = self.relu6(h)  # 512,14,14
         h += pool4
 
         h = self.deconv7(h)
         h = self.bn7(h)
-        h = self.relu7(h) # 256,28,28
+        h = self.relu7(h)  # 256,28,28
         h += pool3
 
         h = self.deconv8(h)
         h = self.bn8(h)
-        h = self.relu8(h) # 128,56,56
+        h = self.relu8(h)  # 128,56,56
         h += pool2
 
         h = self.deconv9(h)
         h = self.bn9(h)
-        h = self.relu9(h) # 64,112,112
+        h = self.relu9(h)  # 64,112,112
         h += pool1
 
         h = self.deconv10(h)
-        h = F.tanh(h) # 3,224,224
+        h = F.tanh(h)  # 3,224,224
 
         return h
 
@@ -111,8 +114,12 @@ class ConvGen(nn.Module):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
                 m.weight.data.normal_(0, math.sqrt(2. / n))
 
+
 class ConvDis(nn.Module):
-    '''Discriminator'''
+    """
+    Discriminator
+    """
+
     def __init__(self, large=False):
         super(ConvDis, self).__init__()
 
@@ -151,27 +158,27 @@ class ConvDis(nn.Module):
         h = x
         h = self.conv1(h)
         h = self.bn1(h)
-        h = self.relu1(h) # 64,112,112 (if input is 224x224)
+        h = self.relu1(h)  # 64,112,112 (if input is 224x224)
 
         h = self.conv2(h)
         h = self.bn2(h)
-        h = self.relu2(h) # 128,56,56
+        h = self.relu2(h)  # 128,56,56
 
-        h = self.conv3(h) # 256,28,28
+        h = self.conv3(h)  # 256,28,28
         h = self.bn3(h)
         h = self.relu3(h)
 
-        h = self.conv4(h) # 512,14,14
+        h = self.conv4(h)  # 512,14,14
         h = self.bn4(h)
         h = self.relu4(h)
 
-        h = self.conv5(h) # 512,7,7
+        h = self.conv5(h)  # 512,7,7
         h = self.bn5(h)
         h = self.relu5(h)
 
         h = self.conv6(h)
         h = self.bn6(h)
-        h = self.relu6(h) # 512,1,1
+        h = self.relu6(h)  # 512,1,1
 
         h = self.conv7(h)
         h = F.sigmoid(h)
