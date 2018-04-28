@@ -1,5 +1,7 @@
+"""
+Model definition
+"""
 import math
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -54,7 +56,7 @@ class ConvGen(nn.Module):
 
         self._initialize_weights()
 
-    def forward(self, x):
+    def forward(self, x):  # pylint: disable=arguments-differ
         h = x
         h = self.conv1(h)
         h = self.bn1(h)
@@ -154,7 +156,7 @@ class ConvDis(nn.Module):
 
         self._initialize_weights()
 
-    def forward(self, x):
+    def forward(self, x):  # pylint: disable=arguments-differ
         h = x
         h = self.conv1(h)
         h = self.bn1(h)
