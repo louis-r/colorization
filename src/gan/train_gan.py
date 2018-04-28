@@ -1,20 +1,25 @@
-from gan_model import ConvGen, ConvDis
-from utils import AverageMeter, save_checkpoint, Plotter_GAN_TV, Plotter_GAN
+"""
+Training for GAN
+"""
+# pylint: disable=invalid-name, global-variable-undefined
 
+import os
+import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
-from torch.utils import data
+from torch.utils import torchdata
 from torchvision import transforms
 import torchvision.utils as vutils
 
-import os
-import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
 from tensorboardX import SummaryWriter
+
+from gan_model import ConvGen, ConvDis
+from utils import AverageMeter, save_checkpoint, Plotter_GAN_TV, Plotter_GAN
 
 parser = argparse.ArgumentParser(description='Colorization using GAN')
 # Paths/Saving/Reload
@@ -53,6 +58,9 @@ parser.add_argument('--gpu', default=0, type=int,
 
 
 def main():
+    """
+    Executable
+    """
     # Declaring globals to be used in train, validate functions
     # noinspection PyGlobalUndefined
     global args, writer, criterion, L1, val_batch_size, img_path, model_path
@@ -144,10 +152,10 @@ def main():
                            large=args.large)
 
     # train_loader __getitem__ returns (data [1, 224, 224]), target [3, 224, 224])
-    train_loader = data.DataLoader(data_train,
-                                   batch_size=args.batch_size,
-                                   shuffle=False,
-                                   num_workers=4)
+    train_loader = torchdata.DataLoader(data_train,
+                                        batch_size=args.batch_size,
+                                        shuffle=False,
+                                        num_workers=4)
 
     data_val = myDataset(data_root,
                          mode='test',
@@ -156,10 +164,10 @@ def main():
                          shuffle=True,
                          large=args.large)
 
-    val_loader = data.DataLoader(data_val,
-                                 batch_size=args.batch_size,
-                                 shuffle=False,
-                                 num_workers=4)
+    val_loader = torchdata.DataLoader(data_val,
+                                      batch_size=args.batch_size,
+                                      shuffle=False,
+                                      num_workers=4)
 
     val_batch_size = val_loader.batch_size
 
@@ -191,18 +199,19 @@ def main():
         print('Epoch {}/{}'.format(epoch, args.num_epoch - 1))
         print('-' * 20)
         if epoch == 0:
-            val_errG, val_errD = validate(val_loader, model_G, model_D, optimizer_G,
-                                          optimizer_D, epoch=-1, global_step=global_step)
+            val_errG, val_errD = validate(val_loader=val_loader, model_G=model_G, model_D=model_D,
+                                          epoch=-1, global_step=global_step)
             # TensorboardX
             writer.add_scalar('val/val_errG', val_errG, epoch)
             writer.add_scalar('val/val_errD', val_errD, epoch)
 
         # Train
-        train_errG, train_errD, global_step = train(train_loader, model_G, model_D,
-                                                    optimizer_G, optimizer_D, epoch, iteration)
+        train_errG, train_errD, global_step = train(train_loader=train_loader, model_G=model_G, model_D=model_D,
+                                                    optimizer_G=optimizer_G, optimizer_D=optimizer_D, epoch=epoch,
+                                                    iteration=iteration)
         # Validate
-        val_errG, val_errD = validate(val_loader, model_G, model_D, optimizer_G,
-                                      optimizer_D, epoch, global_step=global_step)
+        val_errG, val_errD = validate(val_loader=val_loader, model_G=model_G, model_D=model_D,
+                                      epoch=epoch, global_step=global_step)
 
         # TensorboardX
         writer.add_scalar('train/train_errG_epoch', train_errG, epoch)
@@ -219,17 +228,29 @@ def main():
             print('Saving checkpoint.')
             save_checkpoint({'epoch': epoch + 1,
                              'state_dict': model_G.state_dict(),
-                             'optimizer': optimizer_G.state_dict(),
-                             },
+                             'optimizer': optimizer_G.state_dict()},
                             filename=os.path.join(model_path, 'G_epoch_{}.pth.tar'.format(epoch)))
             save_checkpoint({'epoch': epoch + 1,
                              'state_dict': model_D.state_dict(),
-                             'optimizer': optimizer_D.state_dict(),
-                             },
+                             'optimizer': optimizer_D.state_dict()},
                             filename=os.path.join(model_path, 'D_epoch_{}.pth.tar'.format(epoch)))
 
 
 def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, iteration):
+    """
+    Train over one epoch
+    Args:
+        train_loader ():
+        model_G ():
+        model_D ():
+        optimizer_G ():
+        optimizer_D ():
+        epoch ():
+        iteration ():
+
+    Returns:
+
+    """
     errorG = AverageMeter()  # will be re-created after each epoch
     errorD = AverageMeter()  # will be re-created after each epoch
     errorG_basic = AverageMeter()  # basic will be reset after each print
@@ -246,10 +267,10 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
     fake_label = 0
 
     # Iterating for 1 epoch over all train_loader data
-    for i, (data, target) in enumerate(train_loader):
-        data, target = Variable(data), Variable(target)
+    for i, (z_image, target) in enumerate(train_loader):
+        z_image, target = Variable(z_image), Variable(target)
         if args.use_cuda:
-            data, target = data.cuda(), target.cuda()
+            z_image, target = z_image.cuda(), target.cuda()
 
         ########################
         # Update D network: maximize log(D(x)) + log(1 - D(G(z)))
@@ -266,7 +287,7 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
         D_x = output.data.mean()
 
         # Train with fake
-        fake = model_G(data)  # G augments the data and adds fake colors
+        fake = model_G(z_image)  # G augments the z_image and adds fake colors
         label_var = Variable(label.fill_(fake_label))
         output = model_D(fake.detach())  # detach not to compute gradients for model_G here
         errD_fake = criterion(torch.squeeze(output), label_var)  # Error on a fake image
@@ -341,7 +362,19 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
     return errorG.avg, errorD.avg, global_step
 
 
-def validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, global_step):
+def validate(val_loader, model_G, model_D, epoch, global_step):
+    """
+    Validate for one epoch
+    Args:
+        val_loader ():
+        model_G ():
+        model_D ():
+        epoch ():
+        global_step ():
+
+    Returns:
+
+    """
     errorG = AverageMeter()
     errorD = AverageMeter()
 
@@ -352,10 +385,10 @@ def validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, glob
     fake_label = 0
 
     # Iterating for 1 epoch over all val_loader data
-    for i, (data, target) in enumerate(val_loader):
-        data, target = Variable(data), Variable(target)
+    for i, (z_image, target) in enumerate(val_loader):
+        z_image, target = Variable(z_image), Variable(target)
         if args.use_cuda:
-            data, target = data.cuda(), target.cuda()
+            z_image, target = z_image.cuda(), target.cuda()
 
         ########################
         # D network
@@ -370,7 +403,7 @@ def validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, glob
         errD_real = criterion(torch.squeeze(output), label_var)
 
         # validate with fake
-        fake = model_G(data)
+        fake = model_G(z_image)
         label_var = Variable(label.fill_(fake_label))
         output = model_D(fake.detach())
         errD_fake = criterion(torch.squeeze(output), label_var)
@@ -395,7 +428,7 @@ def validate(val_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, glob
         errorD.update(errD.data[0], target.size(0), history=1)
 
         if i == 0:
-            vis_result(data.data, target.data, fake.data, epoch, global_step)
+            vis_result(z_image.data, target.data, fake.data, epoch, global_step)
 
         if i % 50 == 0:
             print('Validating epoch {}: [{}/{}]'.format(epoch, i, len(val_loader)))
