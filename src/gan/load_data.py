@@ -17,7 +17,7 @@ import scipy.misc as misc
 import glob
 import csv
 from skimage import color
-from transform import ReLabel, ToLabel, ToSP, Scale
+from .transform import ReLabel, ToLabel, ToSP, Scale
 
 
 def pil_loader(path):
