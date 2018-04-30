@@ -11,7 +11,7 @@ import time
 import torch
 import torchvision
 from torchvision import transforms
-from torch.utils import data
+from torch.utils import data as torchdata
 import scipy.io as io
 import scipy.misc as misc
 import glob
@@ -26,7 +26,7 @@ def pil_loader(path):
             return img.convert('RGB')
 
 
-class lfw_Dataset(data.Dataset):
+class lfw_Dataset(torchdata.Dataset):
     def __init__(self, root,
                  shuffle=False,
                  small=False,
@@ -122,7 +122,7 @@ class lfw_Dataset(data.Dataset):
         return len(self.path)
 
 
-class FlowerDataset(data.Dataset):
+class FlowerDataset(torchdata.Dataset):
     def __init__(self, root,
                  shuffle=False,
                  small=False,
@@ -211,7 +211,7 @@ class FlowerDataset(data.Dataset):
         return len(self.path)
 
 
-class BobDataset(data.Dataset):
+class BobDataset(torchdata.Dataset):
     def __init__(self, root,
                  shuffle=False,
                  small=False,
@@ -320,7 +320,7 @@ class BobDataset(data.Dataset):
         return len(self.path)
 
 
-class SC2Dataset(data.Dataset):
+class SC2Dataset(torchdata.Dataset):
     def __init__(self, root,
                  shuffle=False,
                  small=False,
@@ -443,7 +443,7 @@ if __name__ == '__main__':
     lfw = SC2Dataset(data_root, mode='train',
                      transform=image_transform, large=True, types='raw')
 
-    data_loader = data.DataLoader(lfw,
+    data_loader = torchdata.DataLoader(lfw,
                                   batch_size=1,
                                   shuffle=False,
                                   num_workers=4)

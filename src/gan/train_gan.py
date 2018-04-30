@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
-from torch.utils import torchdata
+from torch.utils import data as torchdata
 from torchvision import transforms
 import torchvision.utils as vutils
 
@@ -37,6 +37,8 @@ parser.add_argument('--dataset', type=str,
                     help='which dataset?', choices=['sc2', 'flower', 'bob'])
 parser.add_argument('-p', '--plot', action="store_true",
                     help='Plot accuracy and loss diagram?')
+parser.add_argument('--prefix', type=str,
+                    help='Possible prefix for logs')
 # Hyperparameters
 parser.add_argument('--large', action="store_true",
                     help='Use larger images?')
@@ -76,6 +78,9 @@ def main():
                                                                         str(args.lr),
                                                                         str(args.weight_decay),
                                                                         args.num_epoch)
+    if args.prefix:
+        model_name = '{}_{}'.format(args.prefix, model_name)
+
     print('Now training {}'.format(model_name))
     writer = SummaryWriter(log_dir='runs/{}'.format(model_name))
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
@@ -171,7 +176,7 @@ def main():
 
     val_batch_size = val_loader.batch_size
 
-    # set up plotter, path, etc.
+    # Set up plotter, path, etc.
     global iteration, print_interval, plotter, plotter_basic
     iteration = 0
     print_interval = 5
@@ -213,6 +218,7 @@ def main():
         val_errG, val_errD = validate(val_loader=val_loader, model_G=model_G, model_D=model_D,
                                       epoch=epoch, global_step=global_step)
 
+        print('global_step = {}'.format(global_step))
         # TensorboardX
         writer.add_scalar('train/train_errG_epoch', train_errG, epoch)
         writer.add_scalar('train/train_errD_epoch', train_errD, epoch)
@@ -337,7 +343,7 @@ def train(train_loader, model_G, model_D, optimizer_G, optimizer_D, epoch, itera
 
         if iteration % print_interval == 0:
             print(
-                'Training epoch {}: [{}/{}]: '
+                'Training epoch {:03}: [{}/{}]: '
                 'Loss_D: {:.2f} (R {:.2f} + F {:.2f}) | '
                 'Loss_G: {:.2f} (GAN {:.2f} + R {:.2f}) '
                 'D(x): {:.2f} D(G(z)): {:.2f} / {:.2f}'.format(epoch, i, len(train_loader),
