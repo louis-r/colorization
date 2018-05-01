@@ -1,15 +1,8 @@
-import os
-import os.path as osp
-import sys
 import numpy as np
-import pickle
 from PIL import Image
-import matplotlib.pyplot as plt
-# plt.switch_backend('agg')
 import time
 
 import torch
-import torchvision
 from torchvision import transforms
 from torch.utils import data as torchdata
 import scipy.io as io
@@ -17,7 +10,6 @@ import scipy.misc as misc
 import glob
 import csv
 from skimage import color
-from .transform import ReLabel, ToLabel, ToSP, Scale
 
 
 def pil_loader(path):
@@ -131,6 +123,7 @@ class FlowerDataset(torchdata.Dataset):
                  target_transform=None,
                  types='',
                  show_ab=False,
+                 large=False,
                  loader=pil_loader):
 
         tic = time.time()
@@ -444,9 +437,9 @@ if __name__ == '__main__':
                      transform=image_transform, large=True, types='raw')
 
     data_loader = torchdata.DataLoader(lfw,
-                                  batch_size=1,
-                                  shuffle=False,
-                                  num_workers=4)
+                                       batch_size=1,
+                                       shuffle=False,
+                                       num_workers=4)
 
     for i, (data, target) in enumerate(data_loader):
         print(i, len(lfw))
