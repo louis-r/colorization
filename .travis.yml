@@ -4,6 +4,11 @@ python:
   - 3.5.2
   - 3.6.1
 
+branches:
+  only:
+    - master
+    - gan
+
 install:
   - pip --version
   - pip install -r requirements.txt
