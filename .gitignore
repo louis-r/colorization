@@ -3,6 +3,8 @@
 .idea/
 *data
 *runs/
+*model/
+*img/
 
 # Files
 *.zip
